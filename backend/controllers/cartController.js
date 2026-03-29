@@ -57,8 +57,14 @@ async function getMyCart(req, res) {
         }
     });
     if (!cart) return res.json({ cart: null, items: [] });
+    // Không spread ...cart — cart_items chứa BigInt, JSON.stringify không serialize được → client GET /cart 500, đếm giỏ luôn 0.
     return res.json({
-        cart: { ...cart, cart_id: cart.cart_id.toString(), user_id: cart.user_id.toString() },
+        cart: {
+            cart_id: cart.cart_id.toString(),
+            user_id: cart.user_id.toString(),
+            created_at: cart.created_at,
+            status: cart.status
+        },
         items: cart.cart_items.map((i) => ({
             ...i,
             cart_item_id: i.cart_item_id.toString(),
