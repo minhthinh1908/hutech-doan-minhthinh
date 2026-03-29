@@ -9,6 +9,12 @@ function money(n) {
   return Number(n || 0).toLocaleString("vi-VN");
 }
 
+const PAY_METHODS = [
+  { value: "cod", label: "Thanh toán khi nhận hàng (COD)" },
+  { value: "bank_transfer", label: "Chuyển khoản ngân hàng" },
+  { value: "payment_gateway", label: "Cổng thanh toán trực tuyến" }
+];
+
 export default function CartPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -21,6 +27,14 @@ export default function CartPage() {
   const [preview, setPreview] = useState(null);
   const [previewErr, setPreviewErr] = useState("");
   const [previewing, setPreviewing] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cod");
+
+  useEffect(() => {
+    if (user?.address && String(user.address).trim()) {
+      setShippingAddress((prev) => (prev.trim() ? prev : String(user.address)));
+    }
+  }, [user]);
 
   const load = useCallback(async () => {
     setErr("");
@@ -102,10 +116,14 @@ export default function CartPage() {
     }
     setCheckingOut(true);
     try {
-      const body = { shipping_address: addr };
+      const body = { shipping_address: addr, payment_method: paymentMethod };
       if (voucherCode.trim()) body.voucher_code = voucherCode.trim();
       const order = await apiPost("/orders", body, { auth: true });
       window.dispatchEvent(new Event("bd-cart-updated"));
+      if (paymentMethod === "payment_gateway" && order.payment_gateway?.redirect_path) {
+        navigate(order.payment_gateway.redirect_path);
+        return;
+      }
       navigate(`/don-hang/${order.order_id}`);
     } catch (e) {
       setCheckoutErr(e.message || "Đặt hàng thất bại.");
@@ -266,6 +284,20 @@ export default function CartPage() {
                   {checkoutErr}
                 </p>
               ) : null}
+              <label className="buyer-form__field" style={{ maxWidth: 400 }}>
+                <span className="buyer-form__label">Phương thức thanh toán *</span>
+                <select
+                  className="buyer-form__input"
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                >
+                  {PAY_METHODS.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="buyer-form__field" style={{ maxWidth: "100%" }}>
                 <span className="buyer-form__label">Địa chỉ giao hàng *</span>
                 <textarea
@@ -278,8 +310,8 @@ export default function CartPage() {
                 />
               </label>
               <p className="buyer-muted" style={{ marginBottom: "0.75rem" }}>
-                Đặt hàng sẽ lưu địa chỉ trên đơn, áp dụng mã voucher (nếu hợp lệ), rồi chuyển tới trang đơn để chọn phương thức
-                thanh toán (COD / chuyển khoản / cổng — demo).
+                Đặt hàng lưu địa chỉ và phương thức thanh toán đã chọn; áp dụng mã voucher nếu hợp lệ. Nếu chọn cổng trực
+                tuyến, bạn sẽ được chuyển sang trang thanh toán (demo) rồi quay lại đơn hàng.
               </p>
               <button
                 type="button"
@@ -287,7 +319,7 @@ export default function CartPage() {
                 disabled={checkingOut || hasInactiveLine}
                 onClick={checkout}
               >
-                {checkingOut ? "Đang xử lý…" : "Đặt hàng & thanh toán"}
+                {checkingOut ? "Đang xử lý…" : paymentMethod === "payment_gateway" ? "Đặt hàng & thanh toán online" : "Đặt hàng"}
               </button>
             </div>
           ) : null}

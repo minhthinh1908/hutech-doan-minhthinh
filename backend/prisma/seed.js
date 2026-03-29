@@ -227,7 +227,10 @@ async function ensureDemoOrder(prismaClient) {
       data: {
         order_id: order.order_id,
         payment_method: "cod",
+        payment_gateway: "cod",
         payment_status: "success",
+        paid_amount: total,
+        currency: "VND",
         paid_at: new Date()
       }
     });
@@ -407,7 +410,10 @@ async function ensureDemoWarrantyExtraBuyers(prismaClient) {
         data: {
           order_id: order.order_id,
           payment_method: "bank_transfer",
+          payment_gateway: "bank_transfer",
           payment_status: "success",
+          paid_amount: lineTotal,
+          currency: "VND",
           paid_at: new Date("2026-02-15T11:00:00.000Z")
         }
       });

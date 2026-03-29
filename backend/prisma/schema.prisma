@@ -164,6 +164,8 @@ model Order {
   discount_amount Decimal   @default(0.00) @db.Decimal(10, 2)
   total_amount    Decimal   @db.Decimal(10, 2)
   payment_status  String    @default("unpaid")
+  /// Phương thức khách chọn lúc đặt (cod | bank_transfer | payment_gateway)
+  preferred_payment_method String?
   /// Địa chỉ giao hàng (snapshot lúc đặt — từ giỏ hàng)
   shipping_address String?  @db.Text
 
@@ -172,6 +174,7 @@ model Order {
   payments        Payment[]
   order_vouchers  OrderVoucher[]
   refund_requests RefundRequest[]
+  payment_status_logs PaymentStatusLog[]
 
   @@map("orders")
 }
@@ -195,13 +198,57 @@ model Payment {
   payment_id       BigInt    @id @default(autoincrement())
   order_id         BigInt
   payment_method   String
-  payment_status   String    @default("pending")
+  /// Cổng / PSP: vnpay, momo, stripe, cod, bank_transfer, payment_gateway, …
+  payment_gateway  String?
   transaction_code String?
+  /// Số tiền thanh toán thực tế (đồng bộ từ cổng / đối soát)
+  paid_amount      Decimal?  @db.Decimal(10, 2)
+  payment_status   String    @default("pending")
   paid_at          DateTime?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+  /// Phản hồi thô từ cổng (JSON)
+  gateway_response Json?
+  failure_reason   String?   @db.Text
+  /// Mã lỗi nội bộ (GATEWAY_TIMEOUT, INVALID_INFO, …) — đối chiếu với thông báo buyer
+  error_code       String?
+  /// Thông báo hiển thị cho khách (thân thiện)
+  buyer_message    String?   @db.Text
+  /// Cần admin đối soát / lỗi bất thường
+  is_abnormal      Boolean   @default(false)
+  /// Tránh tạo trùng giao dịch cùng lúc (client gửi lại)
+  idempotency_key  String?   @unique
+
+  currency         String?   @default("VND")
+  /// Tổng đã hoàn qua cổng (nếu có)
+  refund_amount    Decimal?  @db.Decimal(10, 2)
+  /// Token một lần để hoàn tất giao dịch cổng (demo / tích hợp gateway thật)
+  gateway_checkout_token String? @unique
 
   order            Order  @relation(fields: [order_id], references: [order_id])
+  payment_status_logs PaymentStatusLog[]
 
   @@map("payments")
+}
+
+/// Lịch sử thay đổi trạng thái thanh toán (đơn + giao dịch) — audit cho Admin
+model PaymentStatusLog {
+  log_id       BigInt    @id @default(autoincrement())
+  order_id     BigInt
+  payment_id   BigInt?
+  from_status  String?
+  to_status    String
+  /// system | admin | buyer | gateway
+  source       String    @default("system")
+  note         String?   @db.Text
+  created_at   DateTime  @default(now())
+
+  order   Order    @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  payment Payment? @relation(fields: [payment_id], references: [payment_id], onDelete: SetNull)
+
+  @@index([order_id])
+  @@index([created_at])
+  @@map("payment_status_logs")
 }
 
 model Voucher {

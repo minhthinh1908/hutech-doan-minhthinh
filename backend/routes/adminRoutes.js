@@ -29,6 +29,8 @@ router.get("/orders", asyncHandler(adminController.listOrders));
 router.get("/orders/:order_id", asyncHandler(adminController.getOrder));
 router.patch("/orders/:order_id", asyncHandler(adminController.updateOrderStatus));
 
+router.get("/payments", asyncHandler(adminController.listPayments));
+router.get("/payments/:id", asyncHandler(adminController.getPayment));
 router.patch("/payments/:payment_id", asyncHandler(adminController.updatePayment));
 
 router.get("/warranties", asyncHandler(adminController.listWarranties));

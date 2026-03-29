@@ -1,12 +1,25 @@
 const prisma = require("../prisma/client");
+const {
+    assertAdminCannotMarkGatewayPaidWithoutFlow,
+    assertOrderCanBeMarkedPaid,
+    PAYMENT_LINE_SUCCESS
+} = require("../services/paymentBusinessRules");
+const { ALLOWED_PAYMENT_STATUSES, isAllowedPaymentStatus } = require("../constants/paymentStatus");
+const { appendPaymentStatusLog } = require("../services/paymentStatusLog");
 
 function asId(v) {
     return typeof v === "bigint" ? v.toString() : v;
 }
 
-/** JSON an toàn khi Prisma trả BigInt lồng nhau */
+/** JSON an toàn khi Prisma trả BigInt / Decimal lồng nhau */
 function serializeBigInt(obj) {
-    return JSON.parse(JSON.stringify(obj, (_, v) => (typeof v === "bigint" ? v.toString() : v)));
+    return JSON.parse(
+        JSON.stringify(obj, (_, v) => {
+            if (typeof v === "bigint") return v.toString();
+            if (v != null && typeof v === "object" && typeof v.toFixed === "function") return v.toString();
+            return v;
+        })
+    );
 }
 
 const ALLOWED_ORDER_STATUSES = [
@@ -17,6 +30,18 @@ const ALLOWED_ORDER_STATUSES = [
     "cancelled",
     "processing",
     "shipped"
+];
+
+/** Trạng thái dòng `payments.payment_status` (gateway / COD / CK) */
+const ALLOWED_PAYMENT_ROW_STATUSES = [
+    "pending",
+    "processing",
+    "success",
+    "failed",
+    "paid",
+    "cancelled",
+    "timeout",
+    "callback_failed"
 ];
 
 const ALLOWED_REFUND_STATUSES = ["pending", "approved", "rejected", "completed"];
@@ -470,7 +495,8 @@ async function getOrder(req, res) {
             order_items: { include: { product: true } },
             payments: true,
             order_vouchers: { include: { voucher: true } },
-            refund_requests: true
+            refund_requests: true,
+            payment_status_logs: { orderBy: { created_at: "desc" }, take: 200 }
         }
     });
     if (!order) return res.status(404).json({ message: "Order not found" });
@@ -488,12 +514,41 @@ async function updateOrderStatus(req, res) {
                 "order_status không hợp lệ (pending | confirmed | shipping | completed | cancelled hoặc legacy)"
         });
     }
-    const updated = await prisma.order.update({
-        where: { order_id },
-        data: {
-            ...(order_status !== undefined ? { order_status } : {}),
-            ...(payment_status !== undefined ? { payment_status } : {})
+    if (payment_status !== undefined) {
+        const ps = String(payment_status).toLowerCase();
+        if (!isAllowedPaymentStatus(ps)) {
+            return res.status(400).json({
+                message: `payment_status phải là một trong: ${ALLOWED_PAYMENT_STATUSES.join(", ")}`
+            });
         }
+        if (ps === "paid") {
+            const okPaid = await assertOrderCanBeMarkedPaid(prisma, order_id);
+            if (!okPaid.ok) {
+                return res.status(400).json({ message: okPaid.message });
+            }
+        }
+    }
+    const updated = await prisma.$transaction(async (tx) => {
+        const before = await tx.order.findUnique({ where: { order_id } });
+        const u = await tx.order.update({
+            where: { order_id },
+            data: {
+                ...(order_status !== undefined ? { order_status } : {}),
+                ...(payment_status !== undefined ? { payment_status } : {})
+            }
+        });
+        if (payment_status !== undefined && before.payment_status !== u.payment_status) {
+            await appendPaymentStatusLog({
+                tx,
+                order_id,
+                payment_id: null,
+                from_status: before.payment_status,
+                to_status: u.payment_status,
+                source: "admin",
+                note: `Cập nhật trạng thái thanh toán đơn (admin #${req.user?.user_id ?? "?"})`
+            });
+        }
+        return u;
     });
     return res.json({
         ...updated,
@@ -502,25 +557,284 @@ async function updateOrderStatus(req, res) {
     });
 }
 
+async function listPayments(req, res) {
+    const searchRaw = req.query.search != null ? String(req.query.search).trim() : "";
+    const rawQ = req.query.q != null ? String(req.query.q).trim() : "";
+    const rawSearch = searchRaw || rawQ;
+
+    const statusRaw = req.query.status != null ? String(req.query.status).trim() : "";
+    const paymentStatusRaw =
+        req.query.payment_status != null ? String(req.query.payment_status).trim() : "";
+    const rawStatus = statusRaw || paymentStatusRaw;
+
+    const paymentMethod =
+        req.query.payment_method != null ? String(req.query.payment_method).trim() : "";
+
+    const from_date = req.query.from_date;
+    const to_date = req.query.to_date;
+
+    const quick = req.query.quick != null ? String(req.query.quick).trim() : "";
+
+    const and = [];
+
+    if (quick === "failed") {
+        and.push({
+            OR: [{ payment_status: "failed" }, { order: { payment_status: "failed" } }]
+        });
+    } else if (quick === "abnormal") {
+        and.push({
+            OR: [
+                { is_abnormal: true },
+                { payment_status: { in: ["timeout", "callback_failed"] } },
+                { error_code: { not: null } }
+            ]
+        });
+    } else if (quick === "refunded") {
+        and.push({ order: { payment_status: "refunded" } });
+    } else if (rawStatus && rawStatus !== "all") {
+        const allowed = [...ALLOWED_PAYMENT_ROW_STATUSES];
+        if (!allowed.includes(rawStatus)) {
+            return res.status(400).json({
+                message: `status / payment_status phải là all hoặc một trong: ${allowed.join(", ")}`
+            });
+        }
+        and.push({ payment_status: rawStatus });
+    }
+    if (paymentMethod && paymentMethod !== "all") {
+        and.push({ payment_method: paymentMethod });
+    }
+    if (from_date || to_date) {
+        const rd = {};
+        if (from_date) rd.gte = new Date(String(from_date));
+        if (to_date) {
+            const end = new Date(String(to_date));
+            end.setUTCHours(23, 59, 59, 999);
+            rd.lte = end;
+        }
+        and.push({ order: { order_date: rd } });
+    }
+    if (rawSearch) {
+        if (/^\d+$/.test(rawSearch)) {
+            try {
+                const n = BigInt(rawSearch);
+                and.push({ OR: [{ order_id: n }, { payment_id: n }] });
+            } catch {
+                return res.status(400).json({ message: "Mã đơn / mã thanh toán không hợp lệ" });
+            }
+        } else {
+            and.push({
+                OR: [
+                    { transaction_code: { contains: rawSearch, mode: "insensitive" } },
+                    {
+                        order: {
+                            user: {
+                                email: { contains: rawSearch, mode: "insensitive" }
+                            }
+                        }
+                    },
+                    {
+                        order: {
+                            user: {
+                                full_name: { contains: rawSearch, mode: "insensitive" }
+                            }
+                        }
+                    }
+                ]
+            });
+        }
+    }
+
+    const where = and.length > 0 ? { AND: and } : {};
+
+    const rows = await prisma.payment.findMany({
+        where,
+        include: {
+            order: {
+                select: {
+                    order_id: true,
+                    order_status: true,
+                    total_amount: true,
+                    payment_status: true,
+                    order_date: true,
+                    preferred_payment_method: true,
+                    user: {
+                        select: { user_id: true, full_name: true, email: true, phone: true }
+                    }
+                }
+            }
+        },
+        orderBy: { payment_id: "desc" },
+        take: 500
+    });
+    return res.json(serializeBigInt(rows));
+}
+
+async function getPayment(req, res) {
+    let payment_id;
+    try {
+        const raw = req.params.id ?? req.params.payment_id;
+        payment_id = BigInt(raw);
+    } catch {
+        return res.status(400).json({ message: "id không hợp lệ" });
+    }
+    const row = await prisma.payment.findUnique({
+        where: { payment_id },
+        include: {
+            payment_status_logs: { orderBy: { created_at: "desc" }, take: 40 },
+            order: {
+                include: {
+                    user: { select: { user_id: true, full_name: true, email: true, phone: true } },
+                    order_items: {
+                        include: {
+                            product: { select: { product_id: true, product_name: true, sku: true } }
+                        }
+                    },
+                    payments: { orderBy: { payment_id: "desc" } },
+                    refund_requests: { orderBy: { refund_request_id: "desc" }, take: 12 }
+                }
+            }
+        }
+    });
+    if (!row) return res.status(404).json({ message: "Payment not found" });
+    return res.json(serializeBigInt(row));
+}
+
 async function updatePayment(req, res) {
     const payment_id = BigInt(req.params.payment_id);
     const existing = await prisma.payment.findUnique({ where: { payment_id } });
     if (!existing) return res.status(404).json({ message: "Payment not found" });
 
-    const { payment_status, transaction_code, paid_at } = req.body;
-    const updated = await prisma.payment.update({
-        where: { payment_id },
-        data: {
-            ...(payment_status !== undefined ? { payment_status } : {}),
-            ...(transaction_code !== undefined ? { transaction_code } : {}),
-            ...(paid_at !== undefined ? { paid_at: paid_at ? new Date(paid_at) : null } : {})
+    const {
+        payment_status,
+        transaction_code,
+        paid_at,
+        paid_amount,
+        payment_gateway,
+        currency,
+        refund_amount,
+        gateway_response,
+        failure_reason
+    } = req.body;
+    const data = {};
+    if (payment_status !== undefined) {
+        const ps = String(payment_status).toLowerCase();
+        if (!isAllowedPaymentStatus(ps)) {
+            return res.status(400).json({
+                message: `payment_status phải là một trong: ${ALLOWED_PAYMENT_STATUSES.join(", ")}`
+            });
         }
+        const gate = assertAdminCannotMarkGatewayPaidWithoutFlow(existing, payment_status);
+        if (!gate.ok) {
+            return res.status(400).json({ message: gate.message });
+        }
+        data.payment_status = String(payment_status);
+    }
+    if (transaction_code !== undefined) {
+        data.transaction_code = transaction_code === null || transaction_code === "" ? null : String(transaction_code);
+    }
+    if (paid_at !== undefined) {
+        data.paid_at = paid_at ? new Date(paid_at) : null;
+    }
+    if (paid_amount !== undefined) {
+        if (paid_amount === null || paid_amount === "") {
+            data.paid_amount = null;
+        } else {
+            const n = Number(paid_amount);
+            if (!Number.isFinite(n) || n < 0) {
+                return res.status(400).json({ message: "paid_amount phải là số ≥ 0 hoặc để trống" });
+            }
+            data.paid_amount = n;
+        }
+    }
+    if (payment_gateway !== undefined) {
+        data.payment_gateway = payment_gateway === null || payment_gateway === "" ? null : String(payment_gateway);
+    }
+    if (currency !== undefined) {
+        data.currency = currency === null || currency === "" ? null : String(currency);
+    }
+    if (failure_reason !== undefined) {
+        data.failure_reason = failure_reason === null || failure_reason === "" ? null : String(failure_reason);
+    }
+    if (gateway_response !== undefined) {
+        data.gateway_response =
+            gateway_response === null || gateway_response === "" ? null : gateway_response;
+    }
+    if (refund_amount !== undefined) {
+        if (refund_amount === null || refund_amount === "") {
+            data.refund_amount = null;
+        } else {
+            const n = Number(refund_amount);
+            if (!Number.isFinite(n) || n < 0) {
+                return res.status(400).json({ message: "refund_amount phải là số ≥ 0 hoặc để trống" });
+            }
+            data.refund_amount = n;
+        }
+    }
+
+    if (Object.keys(data).length === 0) {
+        return res.status(400).json({
+            message:
+                "Cần ít nhất một trường: payment_status, transaction_code, paid_at, paid_amount, payment_gateway, currency, refund_amount, gateway_response, failure_reason"
+        });
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+        const u = await tx.payment.update({
+            where: { payment_id },
+            data
+        });
+        if (data.payment_status !== undefined && existing.payment_status !== u.payment_status) {
+            await appendPaymentStatusLog({
+                tx,
+                order_id: existing.order_id,
+                payment_id,
+                from_status: existing.payment_status,
+                to_status: u.payment_status,
+                source: "admin",
+                note: "Cập nhật giao dịch thanh toán"
+            });
+            const ord = await tx.order.findUnique({ where: { order_id: u.order_id } });
+            if (ord && ord.payment_status !== u.payment_status) {
+                await tx.order.update({
+                    where: { order_id: u.order_id },
+                    data: { payment_status: u.payment_status }
+                });
+                await appendPaymentStatusLog({
+                    tx,
+                    order_id: u.order_id,
+                    payment_id: null,
+                    from_status: ord.payment_status,
+                    to_status: u.payment_status,
+                    source: "admin",
+                    note: `Đồng bộ đơn hàng theo giao dịch #${asId(payment_id)}`
+                });
+            }
+        } else {
+            const st = String(u.payment_status || "").toLowerCase();
+            const manualMethods = ["cod", "bank_transfer"];
+            const manualPaid = st === PAYMENT_LINE_SUCCESS || st === "paid";
+            if (manualPaid && manualMethods.includes(String(u.payment_method).toLowerCase())) {
+                const ord = await tx.order.findUnique({ where: { order_id: u.order_id } });
+                if (ord && ord.payment_status !== "paid") {
+                    await tx.order.update({
+                        where: { order_id: u.order_id },
+                        data: { payment_status: "paid" }
+                    });
+                    await appendPaymentStatusLog({
+                        tx,
+                        order_id: u.order_id,
+                        payment_id: null,
+                        from_status: ord.payment_status,
+                        to_status: "paid",
+                        source: "admin",
+                        note: `Đồng bộ đơn (COD/chuyển khoản) — giao dịch #${asId(payment_id)}`
+                    });
+                }
+            }
+        }
+        return u;
     });
-    return res.json({
-        ...updated,
-        payment_id: asId(updated.payment_id),
-        order_id: asId(updated.order_id)
-    });
+    return res.json(serializeBigInt(updated));
 }
 
 async function listWarranties(req, res) {
@@ -798,9 +1112,28 @@ async function updateRefundRequest(req, res) {
     if (Object.keys(data).length === 0) {
         return res.status(400).json({ message: "Gửi refund_status, admin_note hoặc refund_amount." });
     }
-    const updated = await prisma.refundRequest.update({
-        where: { refund_request_id },
-        data
+
+    const nextRefundStatus = data.refund_status != null ? String(data.refund_status) : null;
+
+    const updated = await prisma.$transaction(async (tx) => {
+        const u = await tx.refundRequest.update({
+            where: { refund_request_id },
+            data
+        });
+        if (nextRefundStatus === "completed") {
+            await tx.order.update({
+                where: { order_id: existing.order_id },
+                data: { payment_status: "refunded" }
+            });
+            await tx.payment.updateMany({
+                where: {
+                    order_id: existing.order_id,
+                    payment_status: { in: [PAYMENT_LINE_SUCCESS, "paid"] }
+                },
+                data: { payment_status: "refunded" }
+            });
+        }
+        return u;
     });
     return res.json({
         refund_request_id: asId(updated.refund_request_id),
@@ -844,7 +1177,7 @@ async function reportSummary(req, res) {
             `SELECT COALESCE(SUM(total_amount), 0)::text AS revenue
              FROM orders
              WHERE order_date >= $1 AND order_date <= $2
-               AND payment_status IN ('paid','success')`,
+               AND payment_status IN ('paid')`,
             fromDate,
             toDate
         ),
@@ -935,7 +1268,7 @@ async function reportRevenue(req, res) {
                    SUM(total_amount)::text AS revenue
             FROM orders
             WHERE order_date >= $1 AND order_date <= $2
-              AND payment_status IN ('paid','success')
+              AND payment_status IN ('paid')
             GROUP BY bucket
             ORDER BY bucket ASC
           `
@@ -944,7 +1277,7 @@ async function reportRevenue(req, res) {
                    SUM(total_amount)::text AS revenue
             FROM orders
             WHERE order_date >= $1 AND order_date <= $2
-              AND payment_status IN ('paid','success')
+              AND payment_status IN ('paid')
             GROUP BY bucket
             ORDER BY bucket ASC
           `,
@@ -1068,7 +1401,7 @@ async function reportTopProducts(req, res) {
             INNER JOIN orders o ON o.order_id = oi.order_id
             JOIN products p ON p.product_id = oi.product_id
             WHERE o.order_date >= $1 AND o.order_date <= $2
-              AND o.payment_status IN ('paid','success')
+              AND o.payment_status IN ('paid')
             GROUP BY p.product_id, p.product_name
             ORDER BY SUM(oi.line_total) DESC
             LIMIT $3
@@ -1127,6 +1460,8 @@ module.exports = {
     listOrders,
     getOrder,
     updateOrderStatus,
+    listPayments,
+    getPayment,
     updatePayment,
     listWarranties,
     updateWarranty,

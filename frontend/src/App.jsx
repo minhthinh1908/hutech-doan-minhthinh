@@ -17,12 +17,14 @@ import OrderDetailPage from "./pages/OrderDetailPage.jsx";
 import WarrantiesPage from "./pages/WarrantiesPage.jsx";
 import RepairsPage from "./pages/RepairsPage.jsx";
 import RefundsPage from "./pages/RefundsPage.jsx";
+import PaymentGatewayPage from "./pages/PaymentGatewayPage.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import AdminProducts from "./pages/admin/AdminProducts.jsx";
 import AdminCategories from "./pages/admin/AdminCategories.jsx";
 import AdminBrands from "./pages/admin/AdminBrands.jsx";
 import AdminVouchers from "./pages/admin/AdminVouchers.jsx";
 import AdminOrders from "./pages/admin/AdminOrders.jsx";
+import AdminPayments from "./pages/admin/AdminPayments.jsx";
 import AdminUsers from "./pages/admin/AdminUsers.jsx";
 import AdminWarranties from "./pages/admin/AdminWarranties.jsx";
 import AdminReports from "./pages/admin/AdminReports.jsx";
@@ -78,6 +80,14 @@ export default function App() {
           }
         />
         <Route
+          path="thanh-toan"
+          element={
+            <RequireAuth>
+              <PaymentGatewayPage />
+            </RequireAuth>
+          }
+        />
+        <Route
           path="bao-hanh"
           element={
             <RequireAuth>
@@ -117,6 +127,7 @@ export default function App() {
         <Route path="thuong-hieu" element={<AdminBrands />} />
         <Route path="voucher" element={<AdminVouchers />} />
         <Route path="don-hang" element={<AdminOrders />} />
+        <Route path="thanh-toan" element={<AdminPayments />} />
         <Route path="khach-hang" element={<AdminUsers />} />
         <Route path="danh-gia" element={<AdminReviews />} />
         <Route path="bao-hanh" element={<AdminWarranties />} />

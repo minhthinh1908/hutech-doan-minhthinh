@@ -301,6 +301,73 @@
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": { "raw": "{{baseUrl}}/api/orders/1/payments", "host": ["{{baseUrl}}"], "path": ["api", "orders", "1", "payments"] }
           }
+        },
+        {
+          "name": "POST /api/orders/:id/payments (payment_gateway)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"payment_method\": \"payment_gateway\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/orders/1/payments", "host": ["{{baseUrl}}"], "path": ["api", "orders", "1", "payments"] }
+          }
+        },
+        {
+          "name": "POST /api/orders/:id/payments/:paymentId/gateway/result (demo)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"result\": \"success\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/1/payments/1/gateway/result",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "1", "payments", "1", "gateway", "result"]
+            }
+          }
+        },
+        {
+          "name": "POST /api/orders/:id/payments/:paymentId/outcome (ngoại lệ demo)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scenario\": \"gateway_timeout\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/1/payments/1/outcome",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "1", "payments", "1", "outcome"]
+            }
+          }
+        },
+        {
+          "name": "POST /api/orders/:id/payments (idempotency_key)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_method\": \"payment_gateway\",\n  \"idempotency_key\": \"client-req-001\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/orders/1/payments", "host": ["{{baseUrl}}"], "path": ["api", "orders", "1", "payments"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks (Payment Gateway)",
+      "item": [
+        {
+          "name": "POST /api/webhooks/payment-gateway",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reference\": \"GW-1-1730000000000\",\n  \"status\": \"success\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/webhooks/payment-gateway", "host": ["{{baseUrl}}"], "path": ["api", "webhooks", "payment-gateway"] }
+          }
         }
       ]
     },
@@ -584,11 +651,27 @@
           }
         },
         {
+          "name": "GET /api/admin/payments",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/payments?payment_status=all&q=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "payments"],
+              "query": [
+                { "key": "payment_status", "value": "all", "description": "all | pending | success | failed | paid" },
+                { "key": "q", "value": "", "description": "Mã giao dịch (contains) hoặc số mã đơn / mã thanh toán" }
+              ]
+            }
+          }
+        },
+        {
           "name": "PATCH /api/admin/payments/:payment_id",
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "body": { "mode": "raw", "raw": "{\n  \"payment_status\": \"paid\",\n  \"transaction_code\": \"TX123\",\n  \"paid_at\": \"2026-03-27T10:00:00.000Z\"\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"payment_status\": \"success\",\n  \"transaction_code\": \"TX123\",\n  \"paid_amount\": 150000,\n  \"paid_at\": \"2026-03-27T10:00:00.000Z\"\n}" },
             "url": { "raw": "{{baseUrl}}/api/admin/payments/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "payments", "1"] }
           }
         },

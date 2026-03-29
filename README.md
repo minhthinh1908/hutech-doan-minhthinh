@@ -58,6 +58,57 @@ flowchart LR
 
 ---
 
+## Vai trò của Payment Gateway (actor ngoài)
+
+Trong mô hình use case, **Payment Gateway** là **actor bên ngoài** hệ thống cửa hàng, tham gia vào use case **Process Payment** (xử lý thanh toán) khi **Buyer** đặt hàng và chọn thanh toán trực tuyến.
+
+**Nhiệm vụ của Payment Gateway**
+
+| Nhiệm vụ | Mô tả |
+|----------|--------|
+| Nhận yêu cầu thanh toán | Nhận luồng thanh toán do **hệ thống** chuyển tiếp sau khi Buyer xác nhận đơn (số tiền, mã tham chiếu đơn hàng, …). |
+| Xử lý giao dịch | Thực hiện giao dịch với tổ chức tài chính / ví điện tử theo giao thức của từng cổng (VNPay, MoMo, ZaloPay, …). |
+| Xác thực thanh toán | Đối soát chữ ký, trạng thái giao dịch, chống giả mạo callback. |
+| Trả kết quả về hệ thống | Thông báo **thành công** hoặc **thất bại** (và mã lỗi nếu có) để backend cập nhật `payment_status` / bản ghi `Payment` tương ứng. |
+
+**Phạm vi trách nhiệm (ranh giới)**
+
+- Payment Gateway **không** quản lý sản phẩm, người dùng hay đơn hàng; các thực thể đó thuộc **hệ thống nội bộ** (database + API).
+- Cổng chỉ xử lý **giao dịch thanh toán** (transaction) theo yêu cầu và phản hồi kết quả — phù hợp nguyên tắc **tách biệt trách nhiệm** trong kiến trúc TMĐT.
+
+```mermaid
+sequenceDiagram
+  participant B as Buyer
+  participant S as Hệ thống (Shop API)
+  participant G as Payment Gateway
+  B->>S: Đặt hàng / chọn thanh toán
+  S->>G: Yêu cầu thanh toán (số tiền, ref đơn)
+  G->>G: Xử lý & xác thực giao dịch
+  G-->>S: Kết quả (thành công / thất bại)
+  S->>S: Cập nhật trạng thái thanh toán đơn hàng
+```
+
+**Trong mã nguồn hiện tại:** bảng `payments` và trường `payment_status` trên đơn hàng phục vụ **ghi nhận** thanh toán; **tích hợp cổng thực** (redirect, IPN/webhook) là bước triển khai tiếp theo, đúng với vai trò actor nêu trên.
+
+### Trạng thái thanh toán (`payment_status`)
+
+Cùng một bộ giá trị cho **`orders.payment_status`** và **`payments.payment_status`**:
+
+| Giá trị | Ý nghĩa |
+|---------|---------|
+| `pending` | Đơn / giao dịch đã tạo nhưng **chưa thanh toán** (hoặc chờ thu COD). |
+| `processing` | **Đang xử lý** — chuyển sang cổng, chờ chuyển khoản, hoặc chờ xác nhận. |
+| `paid` | **Thanh toán thành công.** |
+| `failed` | **Thanh toán thất bại** (có thể thử lại). |
+| `cancelled` | **Khách hủy** thanh toán (phiên cổng / hủy giao dịch). |
+| `refunded` | **Đã hoàn tiền** cho khách. |
+
+- **Buyer:** nhãn tiếng Việt ngắn gọn (`frontend/src/utils/paymentStatusLabels.js` — `paymentStatusBuyerLabel`).  
+- **Admin:** nhãn kèm **mã + mô tả** (`paymentStatusAdminLabel`) và bảng **nhật ký** `payment_status_logs` (nguồn: `system` | `admin` | `gateway` | `buyer`).  
+- **Ghi log:** mỗi lần đổi trạng thái (đặt hàng, cổng, webhook, cập nhật admin) ghi vào bảng **`payment_status_logs`**.
+
+---
+
 ## Cấu trúc thư mục (rút gọn)
 
 ```
@@ -146,6 +197,39 @@ flowchart LR
 - **Cập nhật thanh toán** — `PATCH /api/admin/payments/:payment_id` (ví dụ ghi `paid_at`, `transaction_code`).
 
 > **Tích hợp cổng thực (VNPay, MoMo, …):** hiện tại là luồng demo; production cần redirect URL, webhook IPN và cập nhật trạng thái từ callback.
+
+### Logic nghiệp vụ thanh toán (business rules)
+
+Áp dụng trong code: `backend/services/paymentBusinessRules.js` + kiểm tra trong `orderController.createPayment`, `adminController.updatePayment` / `updateOrderStatus` / `updateRefundRequest`.
+
+| Quy tắc | Cách triển khai |
+|--------|------------------|
+| Mỗi payment gắn order hợp lệ | `Payment.order_id` là FK; buyer chỉ tạo qua `POST /api/orders/:id/payments` khi đơn thuộc user. |
+| Không paid nếu cổng chưa xác nhận | Admin **không** được PATCH `payment_status` thành `paid`/`success` cho `payment_method = payment_gateway` — chỉ webhook / `paymentGatewayService` / luồng hoàn tất phiên cổng. |
+| Thanh toán thất bại | Đơn vẫn tồn tại; `orders.payment_status` có thể `failed` / `unpaid` / `pending` tùy luồng; dòng `payments` ghi `failed` (hoặc tương đương). |
+| Thanh toán lại | Không tạo giao dịch mới khi còn dòng **pending** / **awaiting_confirmation**; sau **failed** / **cancelled** có thể tạo bản ghi payment mới. |
+| Hoàn tiền xong | Khi `refund_status = completed`, đồng bộ `orders.payment_status = refunded` và các dòng payment đã thành công → `refunded`. |
+| Buyer không sửa payment_status | Body `POST /orders/:id/payments` **không** được chứa `payment_status` — luôn tạo ở trạng thái chờ. |
+| Đặt đơn `paid` từ admin | `PATCH /admin/orders/:id` với `payment_status: paid` chỉ khi đã có ít nhất một dòng payment `success` hoặc `paid` (sau khi COD/chuyển khoản xác nhận hoặc cổng thành công). |
+
+### 10. Trường hợp xử lý ngoại lệ (Payment Gateway)
+
+Các tình huống được **mô phỏng** qua `POST /api/orders/:order_id/payments/:payment_id/outcome` (body: `{ "scenario": "<tên>" }`, JWT buyer, chỉ `payment_gateway`). Thông báo thân thiện cho khách lưu ở `payments.buyer_message`, mã lỗi ở `payments.error_code`, cờ đối soát ở `payments.is_abnormal`. Log cấu trúc: `backend/services/paymentExceptionLog.js`.
+
+| Scenario | Ý nghĩa |
+|----------|---------|
+| `gateway_timeout` | Timeout cổng — `payment_status`: `timeout` |
+| `invalid_payment_info` | Sai thông tin thanh toán — `failed` |
+| `user_cancelled` | Khách hủy giữa chừng — `cancelled` |
+| `gateway_error` | Cổng trả lỗi — `failed` |
+| `callback_failed` | Tiền có thể đã trừ nhưng callback không về — `callback_failed`, đơn: `pending_confirmation` |
+| `duplicate` | Giao dịch trùng (đối soát) — `failed` |
+
+**Chống trùng khi tạo phiên:** `POST /api/orders/:id/payments` có thể gửi `idempotency_key` (unique theo đơn); trùng khóa trả **200** với `duplicate: true` và bản ghi payment hiện có (không tạo dòng mới).
+
+**Webhook / demo thành công:** khi cổng xác nhận thành công, các trường lỗi trên dòng payment được xóa (`error_code`, `buyer_message`, `is_abnormal`).
+
+**Admin:** `GET /api/admin/payments?quick=abnormal` — các giao dịch lỗi hoặc bất thường (cờ `is_abnormal`, trạng thái `timeout` / `callback_failed`, hoặc có `error_code`).
 
 ---
 
@@ -283,7 +367,7 @@ Các nhóm route đăng ký trong `backend/app.js` (đường dẫn đầy đủ
 
 ## Hướng phát triển (gợi ý)
 
-- Tích hợp cổng thanh toán thực (VNPay, MoMo, …) và webhook xác nhận.  
+- Tích hợp **Payment Gateway** thực (VNPay, MoMo, …): redirect, IPN/webhook, đối soát với bảng `payments` — xem mục **Vai trò của Payment Gateway** ở trên.  
 - Gửi email / SMS xác nhận đơn hàng.  
 - Viết test tự động (API: Jest/Supertest; UI: Vitest + Testing Library).  
 - Triển khai Docker / CI-CD và HTTPS chuẩn production.

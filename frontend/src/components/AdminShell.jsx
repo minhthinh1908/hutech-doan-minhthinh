@@ -9,6 +9,7 @@ const NAV = [
   { to: "/admin/thuong-hieu", label: "Thương hiệu" },
   { to: "/admin/voucher", label: "Khuyến mãi / Voucher" },
   { to: "/admin/don-hang", label: "Đơn hàng" },
+  { to: "/admin/thanh-toan", label: "Thanh toán / Đối soát" },
   { to: "/admin/khach-hang", label: "Người dùng" },
   { to: "/admin/danh-gia", label: "Đánh giá" },
   { to: "/admin/bao-hanh", label: "Bảo hành" },

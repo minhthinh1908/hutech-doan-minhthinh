@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { apiGet, apiPost } from "../api/client.js";
 import BuyerSidebar from "../components/BuyerSidebar.jsx";
+import { paymentStatusBuyerLabel } from "../utils/paymentStatusLabels.js";
 import "./BuyerPages.css";
 
 function money(n) {
@@ -17,16 +18,6 @@ function orderStatusVi(s) {
     shipped: "Đang giao (cũ)",
     completed: "Hoàn thành",
     cancelled: "Đã hủy"
-  };
-  return m[s] || s || "—";
-}
-
-function payStatusVi(s) {
-  const m = {
-    unpaid: "Chưa thanh toán",
-    paid: "Đã thanh toán",
-    pending: "Đang chờ",
-    refunded: "Đã hoàn tiền"
   };
   return m[s] || s || "—";
 }
@@ -85,6 +76,16 @@ const PAY_METHODS = [
   { value: "payment_gateway", label: "Cổng thanh toán trực tuyến" }
 ];
 
+/** Kịch bản ngoại lệ (demo) — khớp `paymentOutcomeService.OUTCOME_SCENARIOS` */
+const PAYMENT_EXCEPTION_SCENARIOS = [
+  { scenario: "gateway_timeout", label: "Timeout cổng" },
+  { scenario: "invalid_payment_info", label: "Sai thông tin TT" },
+  { scenario: "user_cancelled", label: "Khách hủy giữa chừng" },
+  { scenario: "gateway_error", label: "Cổng báo lỗi" },
+  { scenario: "callback_failed", label: "TT OK, callback lỗi" },
+  { scenario: "duplicate", label: "Giao dịch trùng" }
+];
+
 function payMethodLabel(code) {
   const m = PAY_METHODS.find((x) => x.value === code);
   return m ? m.label : code || "—";
@@ -92,6 +93,9 @@ function payMethodLabel(code) {
 
 export default function OrderDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const paymentBanner = searchParams.get("payment") || searchParams.get("pay");
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -99,6 +103,8 @@ export default function OrderDetailPage() {
   const [payMsg, setPayMsg] = useState("");
   const [payErr, setPayErr] = useState("");
   const [paying, setPaying] = useState(false);
+  const [gatewaySim, setGatewaySim] = useState(null);
+  const [outcomeSim, setOutcomeSim] = useState(null);
   const [refundReason, setRefundReason] = useState("");
   const [refundBuyerNote, setRefundBuyerNote] = useState("");
   const [refundMsg, setRefundMsg] = useState("");
@@ -127,19 +133,49 @@ export default function OrderDetailPage() {
     };
   }, [id]);
 
+  useEffect(() => {
+    if (!paymentBanner) return undefined;
+    const t = setTimeout(() => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("payment");
+          next.delete("pay");
+          return next;
+        },
+        { replace: true }
+      );
+    }, 14000);
+    return () => clearTimeout(t);
+  }, [paymentBanner, setSearchParams]);
+
   async function submitPayment() {
     setPayMsg("");
     setPayErr("");
     setPaying(true);
     try {
-      await apiPost(
+      const data = await apiPost(
         `/orders/${id}/payments`,
         { payment_method: payMethod },
         { auth: true }
       );
+      if (data?.duplicate) {
+        setPayMsg(
+          data.message ||
+            "Yêu cầu thanh toán đã được ghi nhận trước đó — không tạo giao dịch trùng (idempotency)."
+        );
+        const o = await apiGet(`/orders/${id}`);
+        setOrder(o);
+        return;
+      }
+      if (payMethod === "payment_gateway" && data?.gateway?.redirect_path) {
+        navigate(data.gateway.redirect_path);
+        return;
+      }
       if (payMethod === "payment_gateway") {
         setPayMsg(
-          "Yêu cầu thanh toán đã ghi nhận. Hệ thống sẽ chuyển hướng tới cổng thanh toán (demo — Payment Gateway)."
+          data?.gateway?.message ||
+            "Đã tạo phiên cổng (demo). Chọn một trong các nút bên dưới để mô phỏng kết quả thanh toán."
         );
       } else {
         setPayMsg("Đã ghi nhận phương thức thanh toán. Trạng thái giao dịch: chờ xác nhận.");
@@ -150,6 +186,60 @@ export default function OrderDetailPage() {
       setPayErr(e.message || "Không tạo được thanh toán.");
     } finally {
       setPaying(false);
+    }
+  }
+
+  async function simulateGatewayResult(paymentId, outcome) {
+    const key = `${paymentId}:${outcome}`;
+    setGatewaySim(key);
+    setPayErr("");
+    try {
+      const p = (order.payments || []).find((x) => String(x.payment_id) === String(paymentId));
+      const token = p?.gateway_checkout_token;
+      if (token) {
+        await apiPost("/payments/gateway/complete", { token, outcome }, { auth: true });
+      } else {
+        const result =
+          outcome === "success" ? "success" : outcome === "cancelled" ? "cancelled" : "failed";
+        await apiPost(
+          `/orders/${id}/payments/${paymentId}/gateway/result`,
+          { result },
+          { auth: true }
+        );
+      }
+      setPayMsg(
+        outcome === "success"
+          ? "Thanh toán thành công (demo). Đơn đã cập nhật trạng thái thanh toán và mã giao dịch."
+          : outcome === "cancelled"
+            ? "Đã hủy thanh toán (demo)."
+            : "Thanh toán thất bại (demo)."
+      );
+      const o = await apiGet(`/orders/${id}`);
+      setOrder(o);
+    } catch (e) {
+      setPayErr(e.message || "Không cập nhật được cổng thanh toán.");
+    } finally {
+      setGatewaySim(null);
+    }
+  }
+
+  async function simulatePaymentException(paymentId, scenario) {
+    const key = `${paymentId}:${scenario}`;
+    setOutcomeSim(key);
+    setPayErr("");
+    try {
+      const data = await apiPost(
+        `/orders/${id}/payments/${paymentId}/outcome`,
+        { scenario },
+        { auth: true }
+      );
+      setPayMsg(data?.message || "Đã cập nhật kịch bản ngoại lệ (demo).");
+      const o = await apiGet(`/orders/${id}`);
+      setOrder(o);
+    } catch (e) {
+      setPayErr(e.message || "Không áp dụng được kịch bản này.");
+    } finally {
+      setOutcomeSim(null);
     }
   }
 
@@ -213,6 +303,17 @@ export default function OrderDetailPage() {
 
   const items = order.order_items || [];
   const payments = order.payments || [];
+  const pendingGatewayPayment = payments.find(
+    (p) =>
+      p.payment_method === "payment_gateway" &&
+      (p.payment_status === "pending" || p.payment_status === "processing")
+  );
+
+  const gatewayPaymentForExceptionDemo = payments.find((p) => {
+    if (p.payment_method !== "payment_gateway") return false;
+    const st = String(p.payment_status || "").toLowerCase();
+    return st !== "paid" && st !== "success";
+  });
 
   return (
     <div className="buyer-page">
@@ -220,8 +321,8 @@ export default function OrderDetailPage() {
         <div className="container">
           <h1 className="buyer-page__title">Đơn hàng #{order.order_id}</h1>
           <p className="buyer-page__sub">
-            {orderStatusVi(order.order_status)} · {payStatusVi(order.payment_status)} — Trạng thái đơn do cửa hàng cập nhật
-            (bạn chỉ xem).
+            {orderStatusVi(order.order_status)} · {paymentStatusBuyerLabel(order.payment_status)} — Giao hàng do cửa hàng cập nhật; thanh
+            toán online cập nhật khi cổng thanh toán xác nhận.
           </p>
         </div>
       </div>
@@ -231,6 +332,27 @@ export default function OrderDetailPage() {
           <p>
             <Link to="/don-hang">← Quay lại danh sách</Link>
           </p>
+
+          {paymentBanner === "success" ? (
+            <p className="buyer-msg buyer-msg--ok" role="status">
+              Thanh toán thành công — đơn hàng đã được cập nhật.
+            </p>
+          ) : null}
+          {paymentBanner === "failed" ? (
+            <p className="buyer-msg buyer-msg--err" role="alert">
+              Thanh toán thất bại — bạn có thể thử lại hoặc đổi phương thức.
+            </p>
+          ) : null}
+          {paymentBanner === "cancelled" ? (
+            <p className="buyer-msg buyer-msg--neutral" role="status">
+              Giao dịch bị hủy — đơn vẫn chờ thanh toán nếu bạn muốn thử lại.
+            </p>
+          ) : null}
+          {paymentBanner === "pending" ? (
+            <p className="buyer-msg buyer-msg--neutral" role="status">
+              Giao dịch đang chờ xác nhận từ cổng / ngân hàng.
+            </p>
+          ) : null}
 
           <section className="buyer-order-track" aria-labelledby="order-track-heading">
             <h2 id="order-track-heading" className="buyer-order-track__title">
@@ -338,18 +460,108 @@ export default function OrderDetailPage() {
             <h3 id="pay-h" style={{ fontSize: "1rem" }}>
               Thanh toán
             </h3>
-            <p className="buyer-muted" style={{ marginBottom: "0.75rem" }}>
-              Chọn phương thức để ghi nhận giao dịch. Với cổng thanh toán, hệ thống sẽ tương tác với Payment Gateway (demo).
+            <p className="buyer-muted" style={{ marginBottom: "0.75rem", maxWidth: 640 }}>
+              Luồng: đặt hàng → chọn phương thức → hệ thống gửi yêu cầu tới cổng (online) → cổng xử lý và gọi webhook về
+              server → <strong>trạng thái thanh toán đơn</strong> được cập nhật. COD / chuyển khoản: ghi nhận chờ xác nhận.
             </p>
             {payments.length > 0 ? (
               <ul className="buyer-muted" style={{ paddingLeft: "1.1rem" }}>
                 {payments.map((p) => (
                   <li key={p.payment_id}>
-                    #{p.payment_id} — {payMethodLabel(p.payment_method)} — {payStatusVi(p.payment_status)}
+                    #{p.payment_id} — {payMethodLabel(p.payment_method)} — {paymentStatusBuyerLabel(p.payment_status)}
+                    {p.transaction_code ? ` — Tham chiếu: ${p.transaction_code}` : ""}
                     {p.paid_at ? ` — ${new Date(p.paid_at).toLocaleString("vi-VN")}` : ""}
                   </li>
                 ))}
               </ul>
+            ) : null}
+            {pendingGatewayPayment ? (
+              <div
+                id="gateway-demo"
+                className="buyer-msg buyer-msg--ok"
+                style={{ marginBottom: "0.75rem", maxWidth: 520 }}
+                role="region"
+                aria-label="Giả lập Payment Gateway (demo)"
+              >
+                <strong>Cổng thanh toán — chờ kết quả (demo).</strong> Mở trang cổng giả lập (redirect) hoặc chọn kết quả ngay
+                tại đây — hệ thống cập nhật <code style={{ fontSize: "0.85em" }}>payment_status</code> và đơn hàng.
+                {pendingGatewayPayment?.gateway_checkout_token ? (
+                  <span style={{ display: "block", marginTop: "0.65rem" }}>
+                    <Link
+                      className="buyer-btn buyer-btn--primary"
+                      to={`/thanh-toan?token=${encodeURIComponent(pendingGatewayPayment.gateway_checkout_token)}&orderId=${encodeURIComponent(String(order.order_id))}`}
+                    >
+                      Mở trang cổng thanh toán (demo)
+                    </Link>
+                  </span>
+                ) : null}
+                <div style={{ marginTop: "0.65rem", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                  <button
+                    type="button"
+                    className="buyer-form__btn"
+                    disabled={!!gatewaySim || !!outcomeSim}
+                    onClick={() => simulateGatewayResult(pendingGatewayPayment.payment_id, "success")}
+                  >
+                    {gatewaySim === `${pendingGatewayPayment.payment_id}:success`
+                      ? "Đang xử lý…"
+                      : "Thanh toán thành công"}
+                  </button>
+                  <button
+                    type="button"
+                    className="buyer-form__btn"
+                    style={{ border: "1px solid #ccc", background: "#fff", color: "#333" }}
+                    disabled={!!gatewaySim || !!outcomeSim}
+                    onClick={() => simulateGatewayResult(pendingGatewayPayment.payment_id, "failed")}
+                  >
+                    {gatewaySim === `${pendingGatewayPayment.payment_id}:failed`
+                      ? "Đang xử lý…"
+                      : "Thanh toán thất bại"}
+                  </button>
+                  <button
+                    type="button"
+                    className="buyer-form__btn"
+                    style={{ border: "1px solid #b91c1c", background: "#fff", color: "#b91c1c" }}
+                    disabled={!!gatewaySim}
+                    onClick={() => simulateGatewayResult(pendingGatewayPayment.payment_id, "cancelled")}
+                  >
+                    {gatewaySim === `${pendingGatewayPayment.payment_id}:cancelled`
+                      ? "Đang xử lý…"
+                      : "Hủy thanh toán"}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            {gatewayPaymentForExceptionDemo ? (
+              <div
+                className="buyer-msg"
+                style={{
+                  marginBottom: "0.75rem",
+                  maxWidth: 640,
+                  border: "1px dashed #c4b5a0",
+                  background: "#fffdf8"
+                }}
+                role="region"
+                aria-label="Mô phỏng ngoại lệ cổng thanh toán (demo)"
+              >
+                <strong>Kịch bản lỗi / bất thường (demo QA).</strong> Mô phỏng timeout cổng, sai thông tin, hủy, lỗi cổng,
+                callback thất bại, hoặc giao dịch trùng — thông báo dưới đây là nội dung hiển thị cho khách.
+                <div style={{ marginTop: "0.65rem", display: "flex", flexWrap: "wrap", gap: "0.45rem" }}>
+                  {PAYMENT_EXCEPTION_SCENARIOS.map(({ scenario, label }) => (
+                    <button
+                      key={scenario}
+                      type="button"
+                      className="buyer-form__btn buyer-form__btn--sm"
+                      style={{ fontSize: "0.8rem", padding: "0.35rem 0.55rem" }}
+                      disabled={!!outcomeSim || !!gatewaySim}
+                      onClick={() => simulatePaymentException(gatewayPaymentForExceptionDemo.payment_id, scenario)}
+                    >
+                      {outcomeSim === `${gatewayPaymentForExceptionDemo.payment_id}:${scenario}`
+                        ? "Đang xử lý…"
+                        : label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ) : null}
             <div className="buyer-form__field" style={{ maxWidth: 400 }}>
               <span className="buyer-form__label">Phương thức</span>

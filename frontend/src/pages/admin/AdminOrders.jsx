@@ -1,9 +1,23 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiGet, apiPatch } from "../../api/client.js";
+import {
+  paymentStatusAdminLabel,
+  paymentLogSourceLabel,
+  PAYMENT_STATUS_OPTIONS
+} from "../../utils/paymentStatusLabels.js";
 import "./AdminPages.css";
 
 function money(n) {
   return Number(n || 0).toLocaleString("vi-VN");
+}
+
+function fmtLogDate(iso) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
+  } catch {
+    return "—";
+  }
 }
 
 /** Trạng thái chuẩn admin (đồng bộ use case) */
@@ -15,14 +29,9 @@ const ORDER_STATUS_OPTIONS = [
   { value: "cancelled", label: "Đã hủy" }
 ];
 
-function payLabel(s) {
-  const m = {
-    unpaid: "Chưa thanh toán",
-    paid: "Đã thanh toán",
-    pending: "Đang chờ",
-    refunded: "Đã hoàn tiền"
-  };
-  return m[s] || s || "—";
+function payMethodVi(code) {
+  const m = { cod: "COD", bank_transfer: "Chuyển khoản", payment_gateway: "Cổng TT" };
+  return m[code] || code || "—";
 }
 
 function statusLabel(value) {
@@ -36,6 +45,15 @@ function selectOptionsForOrder(currentStatus) {
   const opts = [...ORDER_STATUS_OPTIONS];
   if (currentStatus && !opts.some((o) => o.value === currentStatus)) {
     opts.push({ value: currentStatus, label: `${currentStatus} (dữ liệu cũ)` });
+  }
+  return opts;
+}
+
+function selectOptionsForPayment(current) {
+  const opts = [...PAYMENT_STATUS_OPTIONS];
+  const c = current != null ? String(current) : "";
+  if (c && !opts.some((o) => o.value === c)) {
+    opts.unshift({ value: c, label: `${c} (dữ liệu cũ)` });
   }
   return opts;
 }
@@ -135,12 +153,32 @@ export default function AdminOrders() {
     }
   }
 
+  async function setPaymentStatus(orderId, payment_status) {
+    setErr("");
+    setMsg("");
+    try {
+      await apiPatch(`/admin/orders/${orderId}`, { payment_status }, { auth: true });
+      setMsg("Đã cập nhật trạng thái thanh toán.");
+      await load();
+      if (detailId === String(orderId)) {
+        try {
+          const data = await apiGet(`/admin/orders/${orderId}`);
+          setDetail(data);
+        } catch {
+          setDetail((d) => (d ? { ...d, payment_status } : d));
+        }
+      }
+    } catch (e) {
+      setErr(e.message || "Không cập nhật được thanh toán.");
+    }
+  }
+
   return (
     <div className="admin-page">
       <h1>Đơn hàng</h1>
       <p className="admin-page__muted">
-        Đơn từ khách đã đăng nhập — xem danh sách, chi tiết và cập nhật trạng thái (pending → confirmed → shipping →
-        completed / cancelled).
+        Đơn từ khách đã đăng nhập — xem danh sách, chi tiết, <strong>trạng thái thanh toán</strong> (kể cả sau cổng
+        thanh toán / webhook) và cập nhật trạng thái giao hàng (pending → confirmed → shipping → completed / cancelled).
       </p>
       {err ? (
         <p className="admin-msg admin-msg--err" role="alert">
@@ -241,7 +279,20 @@ export default function AdminOrders() {
                         ))}
                       </select>
                     </td>
-                    <td>{payLabel(o.payment_status)}</td>
+                    <td>
+                      <select
+                        className="admin-select--order-status"
+                        value={String(o.payment_status || "pending")}
+                        onChange={(e) => setPaymentStatus(o.order_id, e.target.value)}
+                        aria-label="Trạng thái thanh toán"
+                      >
+                        {PAYMENT_STATUS_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
                     <td style={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}>
                       {o.order_date ? new Date(o.order_date).toLocaleString("vi-VN") : "—"}
                     </td>
@@ -308,7 +359,7 @@ export default function AdminOrders() {
                     <p>
                       Đơn: {statusLabel(detail.order_status)}
                       <br />
-                      Thanh toán: {payLabel(detail.payment_status)}
+                      Thanh toán: {paymentStatusAdminLabel(detail.payment_status)}
                     </p>
                   </div>
                   <div>
@@ -342,16 +393,38 @@ export default function AdminOrders() {
 
                 {detail.payments?.length ? (
                   <div className="admin-order-detail__block">
-                    <strong>Lịch sử thanh toán</strong>
-                    <ul className="admin-order-detail__list">
-                      {detail.payments.map((p) => (
-                        <li key={p.payment_id}>
-                          #{p.payment_id} — {p.payment_method} — {payLabel(p.payment_status)}
-                          {p.transaction_code ? ` — Mã GD: ${p.transaction_code}` : ""}
-                          {p.paid_at ? ` — ${new Date(p.paid_at).toLocaleString("vi-VN")}` : ""}
-                        </li>
-                      ))}
-                    </ul>
+                    <strong>Lịch sử thanh toán (dữ liệu đã lưu)</strong>
+                    <div className="admin-table-wrap" style={{ marginTop: "0.5rem" }}>
+                      <table className="admin-table admin-table--compact">
+                        <thead>
+                          <tr>
+                            <th>payment_method</th>
+                            <th>payment_status</th>
+                            <th>transaction_code</th>
+                            <th>paid_amount</th>
+                            <th>paid_at</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {detail.payments.map((p) => (
+                            <tr key={p.payment_id}>
+                              <td>{payMethodVi(p.payment_method)}</td>
+                              <td>{paymentStatusAdminLabel(p.payment_status)}</td>
+                              <td style={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
+                                {p.transaction_code || "—"}
+                              </td>
+                              <td>{p.paid_amount != null ? `${money(p.paid_amount)}đ` : "—"}</td>
+                              <td style={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                                {p.paid_at ? new Date(p.paid_at).toLocaleString("vi-VN") : "—"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="admin-page__muted" style={{ margin: "0.5rem 0 0", fontSize: "0.8rem" }}>
+                      Đối soát &amp; tra cứu toàn hệ thống: Admin → Thanh toán / Đối soát.
+                    </p>
                   </div>
                 ) : null}
 
@@ -392,6 +465,19 @@ export default function AdminOrders() {
                       }}
                     >
                       {selectOptionsForOrder(detail.order_status).map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="admin-order-detail__inline-label">
+                    Thanh toán (đơn):
+                    <select
+                      value={String(detail.payment_status || "pending")}
+                      onChange={(e) => setPaymentStatus(detail.order_id, e.target.value)}
+                    >
+                      {selectOptionsForPayment(detail.payment_status).map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {opt.label}
                         </option>

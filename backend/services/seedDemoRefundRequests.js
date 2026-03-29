@@ -99,7 +99,10 @@ async function seedDemoRefundRequests(prismaClient) {
         data: {
           order_id: o.order_id,
           payment_method: "cod",
+          payment_gateway: "cod",
           payment_status: "success",
+          paid_amount: lineTotal,
+          currency: "VND",
           paid_at: new Date()
         }
       });

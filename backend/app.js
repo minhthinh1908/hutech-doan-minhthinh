@@ -14,6 +14,8 @@ const warrantyRoutes = require("./routes/warrantyRoutes");
 const repairRoutes = require("./routes/repairRoutes");
 const refundRoutes = require("./routes/refundRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const webhookRoutes = require("./routes/webhookRoutes");
 const siteFooterRoutes = require("./routes/siteFooterRoutes");
 const errorHandler = require("./middleware/errorHandler");
 
@@ -36,6 +38,7 @@ app.use("/api/category-brands", categoryBrandRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use("/api/vouchers", voucherRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/warranties", warrantyRoutes);
@@ -43,6 +46,7 @@ app.use("/api/repair-requests", repairRoutes);
 app.use("/api/refund-requests", refundRoutes);
 app.use("/api/site-footer", siteFooterRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/webhooks", webhookRoutes);
 
 app.use(errorHandler);
 

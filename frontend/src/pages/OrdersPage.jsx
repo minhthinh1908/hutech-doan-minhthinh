@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet } from "../api/client.js";
 import BuyerSidebar from "../components/BuyerSidebar.jsx";
+import { paymentStatusBuyerLabel } from "../utils/paymentStatusLabels.js";
 import "./BuyerPages.css";
 
 function money(n) {
@@ -17,16 +18,6 @@ function orderStatusVi(s) {
     shipped: "Đang giao (cũ)",
     completed: "Hoàn thành",
     cancelled: "Đã hủy"
-  };
-  return m[s] || s || "—";
-}
-
-function payStatusVi(s) {
-  const m = {
-    unpaid: "Chưa thanh toán",
-    paid: "Đã thanh toán",
-    pending: "Đang chờ",
-    refunded: "Đã hoàn tiền"
   };
   return m[s] || s || "—";
 }
@@ -96,7 +87,7 @@ export default function OrdersPage() {
                       <td>{o.order_date ? new Date(o.order_date).toLocaleString("vi-VN") : "—"}</td>
                       <td>{money(o.total_amount)}đ</td>
                       <td>{orderStatusVi(o.order_status)}</td>
-                      <td>{payStatusVi(o.payment_status)}</td>
+                      <td>{paymentStatusBuyerLabel(o.payment_status)}</td>
                       <td>
                         <Link className="buyer-btn buyer-btn--primary" to={`/don-hang/${o.order_id}`}>
                           Chi tiết
