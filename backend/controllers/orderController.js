@@ -109,22 +109,18 @@ async function checkout(req, res) {
         if (!voucher) {
             return res.status(400).json({ message: "Mã voucher không tồn tại" });
         }
-        const vCheck = validateVoucherSync(voucher, cart.cart_items);
-        if (!vCheck.ok) {
-            return res.status(400).json({ message: vCheck.message || "Không áp dụng được voucher" });
-        }
+        let usedByUserCount = 0;
         if (voucher.per_user_limit != null) {
-            const usedByUser = await prisma.orderVoucher.count({
+            usedByUserCount = await prisma.orderVoucher.count({
                 where: {
                     voucher_id: voucher.voucher_id,
                     order: { user_id }
                 }
             });
-            if (usedByUser >= voucher.per_user_limit) {
-                return res.status(400).json({
-                    message: "Bạn đã dùng hết lượt áp dụng mã này"
-                });
-            }
+        }
+        const vCheck = validateVoucherSync(voucher, cart.cart_items, { usedByUserCount });
+        if (!vCheck.ok) {
+            return res.status(400).json({ message: vCheck.message || "Không áp dụng được voucher" });
         }
         discount_amount = vCheck.discount_amount;
     }

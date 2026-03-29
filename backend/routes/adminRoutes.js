@@ -11,7 +11,13 @@ router.use(verifyToken, authorizeRoles("admin"));
 
 router.get("/dashboard", asyncHandler(adminController.dashboard));
 
+router.get("/reviews", asyncHandler(adminController.listReviews));
+router.patch("/reviews/:review_id", asyncHandler(adminController.updateReviewModeration));
+router.delete("/reviews/:review_id", asyncHandler(adminController.deleteReview));
+router.delete("/review-comments/:review_comment_id", asyncHandler(adminController.deleteReviewComment));
+
 router.get("/users", asyncHandler(adminController.listUsers));
+router.get("/users/:user_id", asyncHandler(adminController.getUser));
 router.patch("/users/:user_id", asyncHandler(adminController.updateUser));
 
 router.get("/roles", asyncHandler(adminController.listRoles));
@@ -19,6 +25,7 @@ router.post("/roles", asyncHandler(adminController.createRole));
 router.delete("/roles/:role_id", asyncHandler(adminController.deleteRole));
 
 router.get("/orders", asyncHandler(adminController.listOrders));
+router.get("/orders/:order_id", asyncHandler(adminController.getOrder));
 router.patch("/orders/:order_id", asyncHandler(adminController.updateOrderStatus));
 
 router.patch("/payments/:payment_id", asyncHandler(adminController.updatePayment));
@@ -27,6 +34,7 @@ router.get("/warranties", asyncHandler(adminController.listWarranties));
 router.patch("/warranties/:warranty_id", asyncHandler(adminController.updateWarranty));
 
 router.get("/repair-requests", asyncHandler(adminController.listRepairRequests));
+router.get("/repair-requests/:repair_request_id", asyncHandler(adminController.getRepairRequest));
 router.patch(
     "/repair-requests/:repair_request_id",
     asyncHandler(adminController.updateRepairRequest)
@@ -38,6 +46,7 @@ router.patch(
     asyncHandler(adminController.updateRefundRequest)
 );
 
+router.get("/reports/summary", asyncHandler(adminController.reportSummary));
 router.get("/reports/revenue", asyncHandler(adminController.reportRevenue));
 router.get("/reports/top-products", asyncHandler(adminController.reportTopProducts));
 

@@ -7,7 +7,8 @@
         "dev": "nodemon",
         "prisma:generate": "prisma generate",
         "prisma:migrate": "prisma migrate dev",
-        "prisma:seed": "node prisma/seed.js"
+        "prisma:seed": "node prisma/seed.js",
+        "seed:demo-refunds": "node scripts/seed-demo-refunds.js"
     },
     "prisma": {
         "seed": "node prisma/seed.js"

@@ -161,7 +161,11 @@ export default function CartPage() {
                 <span>Tạm tính</span>
                 <strong>{money(subtotal)}đ</strong>
               </div>
-              <label className="buyer-form__field" style={{ maxWidth: 320 }}>
+              <p className="buyer-voucher-flow-hint">
+                Hệ thống kiểm tra mã (hiệu lực, lượt dùng) → điều kiện giỏ (tối thiểu, danh mục) → tính giảm theo % hoặc
+                số tiền cố định → hiển thị tổng thanh toán.
+              </p>
+              <label className="buyer-form__field" style={{ maxWidth: 400 }}>
                 <span className="buyer-form__label">Mã giảm giá (tùy chọn)</span>
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
                   <input
@@ -176,7 +180,7 @@ export default function CartPage() {
                     placeholder="Nhập mã voucher"
                   />
                   <button type="button" className="buyer-btn buyer-btn--primary" disabled={previewing} onClick={previewVoucher}>
-                    {previewing ? "Đang kiểm tra…" : "Kiểm tra mã"}
+                    {previewing ? "Đang kiểm tra…" : "Áp dụng / xem trước"}
                   </button>
                 </div>
               </label>
@@ -186,10 +190,30 @@ export default function CartPage() {
                 </p>
               ) : null}
               {preview ? (
-                <p className="buyer-msg" style={{ background: "#e8f5e9", color: "#1b5e20", padding: "0.5rem 0.75rem", borderRadius: 4 }}>
-                  Giảm <strong>{money(preview.discount_amount)}đ</strong> — Tổng sau giảm:{" "}
-                  <strong>{money(preview.total_amount)}đ</strong>
-                </p>
+                <div className="buyer-voucher-result buyer-voucher-result--ok" role="status">
+                  <div className="buyer-voucher-result__title">Áp dụng voucher thành công!</div>
+                  <ul className="buyer-voucher-result__lines">
+                    <li>
+                      <span>Tạm tính giỏ hàng</span>
+                      <strong>{money(preview.subtotal)}đ</strong>
+                    </li>
+                    {preview.eligible_subtotal != null &&
+                    Number(preview.subtotal) !== Number(preview.eligible_subtotal) ? (
+                      <li>
+                        <span>Phần tiền áp dụng mã (theo danh mục)</span>
+                        <strong>{money(preview.eligible_subtotal)}đ</strong>
+                      </li>
+                    ) : null}
+                    <li>
+                      <span>Số tiền giảm</span>
+                      <strong className="buyer-voucher-result__discount">−{money(preview.discount_amount)}đ</strong>
+                    </li>
+                    <li className="buyer-voucher-result__total">
+                      <span>Tổng thanh toán</span>
+                      <strong>{money(preview.total_amount)}đ</strong>
+                    </li>
+                  </ul>
+                </div>
               ) : null}
               {checkoutErr ? (
                 <p className="buyer-msg buyer-msg--err" role="alert">
@@ -197,8 +221,7 @@ export default function CartPage() {
                 </p>
               ) : null}
               <p className="buyer-muted" style={{ marginBottom: "0.75rem" }}>
-                Đặt hàng sẽ tạo đơn và chuyển bạn sang bước thanh toán. Áp dụng voucher khi đặt hàng (theo use case «Apply
-                Voucher»).
+                Đặt hàng sẽ áp dụng cùng mã đã nhập (nếu hợp lệ) và tạo đơn — logic giống bước «Kiểm tra mã» phía trên.
               </p>
               <button type="button" className="buyer-form__btn" disabled={checkingOut} onClick={checkout}>
                 {checkingOut ? "Đang xử lý…" : "Đặt hàng & thanh toán"}

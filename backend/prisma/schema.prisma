@@ -33,6 +33,7 @@ model User {
   repair_requests RepairRequest[]
   refund_requests RefundRequest[]
   refresh_tokens  RefreshToken[]
+  review_comments ReviewComment[]
 
   @@map("users")
 }
@@ -235,17 +236,34 @@ model OrderVoucher {
 }
 
 model Review {
-  review_id  BigInt   @id @default(autoincrement())
-  user_id    BigInt
-  product_id BigInt
-  rating     Int
-  comment    String?  @db.Text
-  created_at DateTime @default(now())
+  review_id          BigInt   @id @default(autoincrement())
+  user_id            BigInt
+  product_id         BigInt
+  rating             Int
+  comment            String?  @db.Text
+  /// pending | approved | rejected — khách chỉ thấy approved; chủ sở hữu có thể thấy pending/rejected của mình khi đã đăng nhập
+  moderation_status  String   @default("approved")
+  created_at         DateTime @default(now())
 
-  user       User     @relation(fields: [user_id], references: [user_id])
-  product    Product  @relation(fields: [product_id], references: [product_id])
+  user       User            @relation(fields: [user_id], references: [user_id])
+  product    Product         @relation(fields: [product_id], references: [product_id])
+  comments   ReviewComment[]
 
   @@map("reviews")
+}
+
+/// Bình luật theo từng đánh giá (buyer đã đăng nhập; khách chỉ đọc)
+model ReviewComment {
+  review_comment_id BigInt   @id @default(autoincrement())
+  review_id         BigInt
+  user_id           BigInt
+  body              String   @db.Text
+  created_at        DateTime @default(now())
+
+  review Review @relation(fields: [review_id], references: [review_id], onDelete: Cascade)
+  user   User   @relation(fields: [user_id], references: [user_id])
+
+  @@map("review_comments")
 }
 
 model Warranty {
@@ -255,6 +273,12 @@ model Warranty {
   start_date     DateTime  @db.Date
   end_date       DateTime  @db.Date
   status         String    @default("active")
+  /// Ghi chú hiển thị cho khách / nội bộ (phiếu BH)
+  warranty_note  String?   @db.Text
+  /// Ghi chú chỉ admin
+  admin_note     String?   @db.Text
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
 
   order_item     OrderItem @relation(fields: [order_item_id], references: [order_item_id])
   user           User      @relation(fields: [user_id], references: [user_id])
@@ -269,7 +293,14 @@ model RepairRequest {
   user_id           BigInt
   request_date      DateTime  @default(now())
   issue_description String    @db.Text
+  /// pending | received | checking | in_progress | waiting_parts | repaired | rejected | completed | cancelled
   repair_status     String    @default("pending")
+  /// Mảng URL ảnh (/uploads/...) do khách đính kèm
+  attachment_urls   Json?
+  admin_notes       String?   @db.Text
+  resolution_notes  String?   @db.Text
+  expected_completion_date DateTime? @db.Date
+  completed_at      DateTime?
 
   warranty          Warranty  @relation(fields: [warranty_id], references: [warranty_id])
   user              User      @relation(fields: [user_id], references: [user_id])
@@ -283,6 +314,10 @@ model RefundRequest {
   user_id           BigInt
   request_date      DateTime  @default(now())
   reason            String    @db.Text
+  /// Ghi chú thêm của khách (tuỳ chọn, kèm lý do)
+  buyer_note        String?   @db.Text
+  /// Phản hồi / ghi chú nội bộ — khách xem tại Hoàn tiền & chi tiết đơn
+  admin_note        String?   @db.Text
   refund_amount     Decimal   @db.Decimal(10, 2)
   refund_status     String    @default("pending")
 

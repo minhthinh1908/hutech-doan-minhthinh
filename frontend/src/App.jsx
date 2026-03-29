@@ -29,6 +29,7 @@ import AdminReports from "./pages/admin/AdminReports.jsx";
 import AdminRepairs from "./pages/admin/AdminRepairs.jsx";
 import AdminRefunds from "./pages/admin/AdminRefunds.jsx";
 import AdminFooterSettings from "./pages/admin/AdminFooterSettings.jsx";
+import AdminReviews from "./pages/admin/AdminReviews.jsx";
 import "./App.css";
 
 export default function App() {
@@ -117,6 +118,7 @@ export default function App() {
         <Route path="voucher" element={<AdminVouchers />} />
         <Route path="don-hang" element={<AdminOrders />} />
         <Route path="khach-hang" element={<AdminUsers />} />
+        <Route path="danh-gia" element={<AdminReviews />} />
         <Route path="bao-hanh" element={<AdminWarranties />} />
         <Route path="bao-cao" element={<AdminReports />} />
         <Route path="sua-chua" element={<AdminRepairs />} />

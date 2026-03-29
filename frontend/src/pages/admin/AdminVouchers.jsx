@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../../api/client.js";
 import {
   emptyVoucherForm,
@@ -41,6 +41,14 @@ export default function AdminVouchers() {
       cancelled = true;
     };
   }, [load]);
+
+  useEffect(() => {
+    if (!editingId) return undefined;
+    const t = window.setTimeout(() => {
+      formAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, [editingId]);
 
   function resetForm() {
     setForm(emptyVoucherForm());
@@ -110,7 +118,7 @@ export default function AdminVouchers() {
     setErr("");
     try {
       await apiPatch(`/vouchers/${v.voucher_id}`, { status: next }, { auth: true });
-      setMsg(next === "active" ? "Đã mở khóa voucher." : "Đã khóa voucher.");
+      setMsg(next === "active" ? "Đã bật voucher (active)." : "Đã tắt voucher (inactive).");
       await load();
     } catch (e) {
       setErr(e.message || "Không cập nhật được trạng thái");
@@ -134,7 +142,7 @@ export default function AdminVouchers() {
         return;
       }
     }
-    setMsg("Đã copy mã.");
+    setMsg("Đã copy mã voucher.");
     window.setTimeout(() => setMsg(""), 2500);
   }
 
@@ -157,7 +165,22 @@ export default function AdminVouchers() {
         </p>
       ) : null}
 
-      <form className="admin-form admin-form--wide admin-voucher-form" onSubmit={handleSubmit}>
+      <div ref={formAnchorRef} className="admin-voucher-form-anchor" aria-hidden />
+      {editingId ? (
+        <div className="admin-voucher-edit-banner" role="status">
+          Đang sửa voucher <strong>{form.code || "…"}</strong> — chỉnh form bên dưới rồi bấm{" "}
+          <strong>Cập nhật voucher</strong>, hoặc{" "}
+          <button type="button" className="admin-inline-link" onClick={resetForm}>
+            Hủy sửa
+          </button>
+          .
+        </div>
+      ) : null}
+
+      <form
+        className={`admin-form admin-form--wide admin-voucher-form${editingId ? " admin-voucher-form--editing" : ""}`}
+        onSubmit={handleSubmit}
+      >
         <div className="admin-voucher-section">
           <span className="admin-voucher-section__title">Mã &amp; loại giảm</span>
           <div className="admin-form__row">
@@ -331,8 +354,12 @@ export default function AdminVouchers() {
             <tbody>
               {items.map((v) => {
                 const active = String(v.status || "").toLowerCase() === "active";
+                const isEditingRow = editingId && String(v.voucher_id) === String(editingId);
                 return (
-                  <tr key={v.voucher_id}>
+                  <tr
+                    key={v.voucher_id}
+                    className={isEditingRow ? "admin-table__row--editing" : undefined}
+                  >
                     <td>
                       <code className="admin-voucher-code">{v.code}</code>
                     </td>
@@ -347,22 +374,39 @@ export default function AdminVouchers() {
                     </td>
                     <td>
                       <span className={active ? "admin-badge admin-badge--ok" : "admin-badge admin-badge--off"}>
-                        {active ? "Mở" : "Khóa"}
+                        {active ? "Hoạt động" : "Tắt"}
                       </span>
                     </td>
                     <td className="admin-table__actions">
-                      <button type="button" className="admin-btn admin-btn--sm" onClick={() => startEdit(v)}>
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn--sm"
+                        onClick={() => startEdit(v)}
+                        title="Mở form phía trên để sửa voucher"
+                      >
                         Sửa
                       </button>{" "}
-                      <button type="button" className="admin-btn admin-btn--sm" onClick={() => copyCode(v.code)}>
-                        Copy
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn--sm"
+                        onClick={() => copyCode(v.code)}
+                        title="Sao chép mã voucher"
+                        aria-label={`Copy mã ${v.code}`}
+                      >
+                        Copy mã
                       </button>{" "}
                       <button
                         type="button"
                         className="admin-btn admin-btn--sm admin-btn--secondary"
                         onClick={() => toggleStatus(v)}
+                        title={
+                          active
+                            ? "Tắt — khách không dùng được mã này"
+                            : "Bật — cho phép khách dùng mã (còn trong hạn và lượt)"
+                        }
+                        aria-pressed={active}
                       >
-                        {active ? "Khóa" : "Mở"}
+                        {active ? "Tắt" : "Bật"}
                       </button>{" "}
                       <button
                         type="button"

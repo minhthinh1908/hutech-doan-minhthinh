@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { apiGet, apiPost } from "../api/client.js";
+import { apiDelete, apiGet, apiPost } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { mapApiProductToCard } from "../utils/mapProduct.js";
 import { findDemoProduct, DEMO_PRODUCTS } from "../data/demoProducts.js";
@@ -26,6 +26,17 @@ export default function ProductDetailPage() {
   const [reviewMsg, setReviewMsg] = useState("");
   const [reviewErr, setReviewErr] = useState("");
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [commentText, setCommentText] = useState({});
+  const [commentBusy, setCommentBusy] = useState({});
+
+  async function refreshReviews() {
+    try {
+      const rev = await apiGet(`/products/${id}/reviews`);
+      setReviews(Array.isArray(rev) ? rev : []);
+    } catch {
+      setReviews([]);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -120,6 +131,7 @@ export default function ProductDetailPage() {
 
   const apiProductId = raw?.product_id ? String(raw.product_id) : String(product.id);
   const canBuy = !product.contactOnly && (raw?.stock_quantity == null || raw.stock_quantity > 0);
+  const myReview = user ? reviews.some((r) => String(r.user_id) === String(user.user_id)) : false;
 
   async function addToCart() {
     setCartMsg("");
@@ -171,19 +183,48 @@ export default function ProductDetailPage() {
     }
     setReviewSubmitting(true);
     try {
-      await apiPost(
+      const created = await apiPost(
         `/reviews/products/${apiProductId}`,
         { rating: reviewRating, comment: reviewComment.trim() || null },
         { auth: true }
       );
-      setReviewMsg("Cảm ơn bạn đã đánh giá.");
+      setReviewMsg(
+        created?.moderation_status === "pending"
+          ? "Đã gửi đánh giá. Nội dung sẽ hiển thị công khai sau khi được duyệt."
+          : "Cảm ơn bạn đã đánh giá."
+      );
       setReviewComment("");
-      const rev = await apiGet(`/products/${id}/reviews`);
-      setReviews(Array.isArray(rev) ? rev : []);
+      await refreshReviews();
     } catch (e) {
       setReviewErr(e.message || "Không gửi được đánh giá.");
     } finally {
       setReviewSubmitting(false);
+    }
+  }
+
+  async function submitComment(reviewId, e) {
+    e.preventDefault();
+    const text = (commentText[reviewId] || "").trim();
+    if (!text || !raw) return;
+    setCommentBusy((b) => ({ ...b, [reviewId]: true }));
+    try {
+      await apiPost(`/reviews/${reviewId}/comments`, { body: text }, { auth: true });
+      setCommentText((prev) => ({ ...prev, [reviewId]: "" }));
+      await refreshReviews();
+    } catch (e2) {
+      window.alert(e2.message || "Không gửi được bình luận.");
+    } finally {
+      setCommentBusy((b) => ({ ...b, [reviewId]: false }));
+    }
+  }
+
+  async function deleteComment(commentId) {
+    if (!window.confirm("Xóa bình luận này?")) return;
+    try {
+      await apiDelete(`/reviews/comments/${commentId}`, { auth: true });
+      await refreshReviews();
+    } catch (e2) {
+      window.alert(e2.message || "Không xóa được.");
     }
   }
 
@@ -266,24 +307,81 @@ export default function ProductDetailPage() {
 
       <section className="container detail-page__reviews" aria-labelledby="reviews-h">
         <h2 id="reviews-h" className="detail-page__h2">
-          Đánh giá (Write Review)
+          Đánh giá sản phẩm
         </h2>
+        <p className="detail-page__text detail-page__reviews--hint">
+          Mọi người có thể xem đánh giá đã duyệt. Chỉ tài khoản đã đăng nhập mới gửi đánh giá và bình luận.
+        </p>
         {reviews.length > 0 ? (
           <ul className="detail-page__review-list">
             {reviews.map((r) => (
               <li key={r.review_id} className="detail-page__review-item">
-                <strong>{r.user?.full_name || "Khách"}</strong>
-                <span className="detail-page__review-stars"> {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
+                <div className="detail-page__review-head">
+                  <strong>{r.user?.full_name || "Khách"}</strong>
+                  <span className="detail-page__review-stars">
+                    {" "}
+                    {"★".repeat(r.rating)}
+                    {"☆".repeat(5 - r.rating)}
+                  </span>
+                  {r.moderation_status && r.moderation_status !== "approved" ? (
+                    <span className={`detail-page__review-badge detail-page__review-badge--${r.moderation_status}`}>
+                      {r.moderation_status === "pending" ? "Chờ duyệt" : "Không hiển thị công khai"}
+                    </span>
+                  ) : null}
+                </div>
                 {r.comment ? <p className="detail-page__review-comment">{r.comment}</p> : null}
+
+                {r.moderation_status === "approved" && Array.isArray(r.comments) && r.comments.length > 0 ? (
+                  <ul className="detail-page__review-comments">
+                    {r.comments.map((c) => (
+                      <li key={c.review_comment_id} className="detail-page__review-comments-item">
+                        <strong>{c.user?.full_name || "Khách"}</strong>
+                        <span className="detail-page__review-comments-body">{c.body}</span>
+                        {user && String(c.user_id) === String(user.user_id) ? (
+                          <button
+                            type="button"
+                            className="detail-page__review-comments-del"
+                            onClick={() => deleteComment(c.review_comment_id)}
+                          >
+                            Xóa
+                          </button>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                {user && r.moderation_status === "approved" ? (
+                  <form className="detail-page__review-comment-form" onSubmit={(e) => submitComment(r.review_id, e)}>
+                    <label className="detail-page__review-field detail-page__review-field--inline">
+                      <span className="detail-page__review-field-label">Bình luận</span>
+                      <textarea
+                        rows={2}
+                        placeholder="Trả lời đánh giá…"
+                        value={commentText[r.review_id] || ""}
+                        onChange={(e) =>
+                          setCommentText((prev) => ({ ...prev, [r.review_id]: e.target.value }))
+                        }
+                      />
+                    </label>
+                    <button
+                      type="submit"
+                      className="detail-page__cta detail-page__cta--secondary detail-page__cta--small"
+                      disabled={commentBusy[r.review_id]}
+                    >
+                      {commentBusy[r.review_id] ? "Đang gửi…" : "Gửi bình luận"}
+                    </button>
+                  </form>
+                ) : null}
               </li>
             ))}
           </ul>
         ) : (
           <p className="detail-page__text">Chưa có đánh giá.</p>
         )}
-        {user ? (
+        {user && !myReview ? (
           <form className="detail-page__review-form" onSubmit={submitReview}>
-            <p className="detail-page__text">Viết đánh giá sản phẩm bạn đã mua (mỗi sản phẩm một lần).</p>
+            <p className="detail-page__text">Viết đánh giá (mỗi sản phẩm một lần).</p>
             <label className="detail-page__review-field">
               Điểm (1–5)
               <select value={reviewRating} onChange={(e) => setReviewRating(Number(e.target.value))}>
@@ -309,6 +407,8 @@ export default function ProductDetailPage() {
               {reviewSubmitting ? "Đang gửi…" : "Gửi đánh giá"}
             </button>
           </form>
+        ) : user && myReview ? (
+          <p className="detail-page__text">Bạn đã gửi đánh giá cho sản phẩm này.</p>
         ) : (
           <p className="detail-page__text">
             <Link to="/dang-nhap" state={{ from: location }}>

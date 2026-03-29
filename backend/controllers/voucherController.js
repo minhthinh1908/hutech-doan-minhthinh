@@ -77,7 +77,16 @@ async function update(req, res) {
         "applicable_category_ids"
     ];
     for (const f of fields) {
-        if (req.body[f] !== undefined) data[f] = req.body[f];
+        if (req.body[f] === undefined) continue;
+        if (f === "status") {
+            const s = String(req.body.status).toLowerCase();
+            if (!["active", "inactive"].includes(s)) {
+                return res.status(400).json({ message: "status phải là active hoặc inactive" });
+            }
+            data.status = s;
+            continue;
+        }
+        data[f] = req.body[f];
     }
     if (req.body.start_date !== undefined) data.start_date = new Date(req.body.start_date);
     if (req.body.end_date !== undefined) data.end_date = new Date(req.body.end_date);
@@ -120,23 +129,18 @@ async function preview(req, res) {
     }
 
     const voucher = await prisma.voucher.findUnique({ where: { code } });
-    const vCheck = validateVoucherSync(voucher, cart.cart_items);
-    if (!vCheck.ok) {
-        return res.status(400).json({ message: vCheck.message || "Không áp dụng được mã" });
-    }
-
-    if (voucher.per_user_limit != null) {
-        const usedByUser = await prisma.orderVoucher.count({
+    let usedByUserCount = 0;
+    if (voucher?.per_user_limit != null) {
+        usedByUserCount = await prisma.orderVoucher.count({
             where: {
                 voucher_id: voucher.voucher_id,
                 order: { user_id }
             }
         });
-        if (usedByUser >= voucher.per_user_limit) {
-            return res.status(400).json({
-                message: "Bạn đã dùng hết lượt áp dụng mã này"
-            });
-        }
+    }
+    const vCheck = validateVoucherSync(voucher, cart.cart_items, { usedByUserCount });
+    if (!vCheck.ok) {
+        return res.status(400).json({ message: vCheck.message || "Không áp dụng được mã" });
     }
 
     const subtotal = cart.cart_items.reduce(

@@ -1,0 +1,419 @@
+/* Báo cáo admin — dashboard tổng quan */
+
+.admin-report__examples {
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1.1rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: #1e3a5f;
+}
+
+.admin-report__examples-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #1d4ed8;
+}
+
+.admin-report__examples-list {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.admin-report__examples-list li {
+  margin-bottom: 0.4rem;
+}
+
+.admin-report__examples-list li:last-child {
+  margin-bottom: 0;
+}
+
+.admin-report__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.admin-report__toolbar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-report__toolbar-group label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin: 0;
+}
+
+.admin-report__preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-report__preset-btn {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.admin-report__preset-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.admin-report__preset-btn--active {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  color: #fff;
+  border-color: #1e293b;
+  box-shadow: 0 2px 8px rgba(30, 41, 59, 0.25);
+}
+
+.admin-report__date-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.admin-report__date-inputs input[type="date"] {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.admin-report__apply {
+  padding: 0.45rem 1rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.admin-report__apply:hover {
+  background: #1e293b;
+}
+
+.admin-report__chart-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.admin-report__mini-btn {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  color: #475569;
+}
+
+.admin-report__mini-btn--on {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+/* Thẻ KPI */
+.admin-report__kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.admin-report__kpi {
+  position: relative;
+  padding: 1.15rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+.admin-report__kpi::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 12px 12px 0 0;
+}
+
+.admin-report__kpi--revenue::before {
+  background: linear-gradient(90deg, #059669, #10b981);
+}
+
+.admin-report__kpi--orders::before {
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+}
+
+.admin-report__kpi--customers::before {
+  background: linear-gradient(90deg, #7c3aed, #a78bfa);
+}
+
+.admin-report__kpi--products::before {
+  background: linear-gradient(90deg, #ea580c, #fb923c);
+}
+
+.admin-report__kpi-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin: 0 0 0.35rem;
+}
+
+.admin-report__kpi-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.admin-report__kpi-sub {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  line-height: 1.35;
+}
+
+.admin-report__section {
+  margin-bottom: 1.75rem;
+}
+
+.admin-report__section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.admin-report__section-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.02em;
+}
+
+.admin-report__section-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Biểu đồ cột đơn giản */
+.admin-report__chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  min-height: 200px;
+  padding: 1rem 0.5rem 2.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fafafa;
+  overflow-x: auto;
+}
+
+.admin-report__bar-col {
+  flex: 1;
+  min-width: 32px;
+  max-width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  height: 200px;
+}
+
+.admin-report__bar-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 0;
+}
+
+.admin-report__bar {
+  width: 100%;
+  min-height: 4px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+  transition: opacity 0.2s;
+}
+
+.admin-report__bar:hover {
+  opacity: 0.92;
+}
+
+.admin-report__bar-caption {
+  margin-top: 0.35rem;
+  font-size: 0.65rem;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.admin-report__bar-value {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #1e40af;
+  text-align: center;
+  margin-bottom: 0.2rem;
+}
+
+/* Grid 2 cột: đơn trạng thái + voucher */
+.admin-report__grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+
+.admin-report__panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+  background: #fff;
+}
+
+.admin-report__panel-title {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.admin-report__status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.admin-report__status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.88rem;
+}
+
+.admin-report__status-name {
+  color: #475569;
+}
+
+.admin-report__status-pill {
+  font-weight: 800;
+  font-size: 0.85rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.admin-report__voucher-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.9rem;
+}
+
+.admin-report__voucher-row:last-child {
+  border-bottom: none;
+}
+
+.admin-report__after-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.admin-report__after-card {
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+}
+
+.admin-report__after-card strong {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.admin-report__after-card span {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.admin-report__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.admin-report__spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: admin-report-spin 0.75s linear infinite;
+}
+
+@keyframes admin-report-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.admin-report__empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #64748b;
+  font-size: 0.95rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}

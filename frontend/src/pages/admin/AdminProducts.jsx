@@ -15,6 +15,31 @@ function isoToDatetimeLocal(v) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function roundMoney(n) {
+  return Math.round(Number(n) * 100) / 100;
+}
+
+/** Giá bán = giá niêm yết × (1 − %/100) */
+function calcPriceFromOldAndPercent(oldStr, pctStr) {
+  const old = parseFloat(String(oldStr ?? "").replace(",", "."));
+  const pct = parseFloat(String(pctStr ?? "").replace(",", "."));
+  if (Number.isNaN(old) || old < 0) return "";
+  if (Number.isNaN(pct) || pct < 0) return "";
+  if (pct >= 100) return "0";
+  return String(roundMoney(old * (1 - pct / 100)));
+}
+
+/** % giảm từ giá niêm yết và giá bán (khi sửa tay giá bán) */
+function derivePercentFromPrices(oldStr, priceStr) {
+  const old = parseFloat(String(oldStr ?? "").replace(",", "."));
+  const price = parseFloat(String(priceStr ?? "").replace(",", "."));
+  if (Number.isNaN(old) || old <= 0 || Number.isNaN(price) || price < 0) return "";
+  let pct = 100 * (1 - price / old);
+  if (pct < 0) pct = 0;
+  if (pct > 100) pct = 100;
+  return String(roundMoney(pct));
+}
+
 export default function AdminProducts() {
   const [items, setItems] = useState([]);
   const [categoryTree, setCategoryTree] = useState([]);
@@ -39,6 +64,7 @@ export default function AdminProducts() {
     image_url: "",
     status: "active",
     old_price: "",
+    discount_percent: "",
     is_hot: false,
     is_bestseller: false,
     is_new: false,
@@ -118,6 +144,11 @@ export default function AdminProducts() {
       image_url: p.image_url || "",
       status: p.status || "active",
       old_price: p.old_price != null && p.old_price !== "" ? String(p.old_price) : "",
+      discount_percent: (() => {
+        const o = p.old_price != null && p.old_price !== "" ? String(p.old_price) : "";
+        const pr = p.price != null ? String(p.price) : "";
+        return o && pr ? derivePercentFromPrices(o, pr) : "";
+      })(),
       is_hot: Boolean(p.is_hot),
       is_bestseller: Boolean(p.is_bestseller),
       is_new: Boolean(p.is_new),
@@ -140,6 +171,36 @@ export default function AdminProducts() {
   function cancelEdit() {
     setEditingId(null);
     setForm(emptyForm);
+  }
+
+  function setOldPriceForDiscount(v) {
+    setForm((f) => {
+      const next = { ...f, old_price: v };
+      if (String(v).trim() !== "" && String(f.discount_percent).trim() !== "") {
+        next.price = calcPriceFromOldAndPercent(v, f.discount_percent);
+      }
+      return next;
+    });
+  }
+
+  function setDiscountPercent(v) {
+    setForm((f) => {
+      const next = { ...f, discount_percent: v };
+      if (String(f.old_price).trim() !== "") {
+        next.price = calcPriceFromOldAndPercent(f.old_price, v);
+      }
+      return next;
+    });
+  }
+
+  function setPriceManual(v) {
+    setForm((f) => {
+      const next = { ...f, price: v };
+      if (String(f.old_price).trim() !== "" && String(v).trim() !== "") {
+        next.discount_percent = derivePercentFromPrices(f.old_price, v);
+      }
+      return next;
+    });
   }
 
   async function handleImageFile(file, field) {
@@ -341,29 +402,53 @@ export default function AdminProducts() {
               onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
             />
           </label>
-          <label>
-            Giá (đ) — để 0 nếu chỉ «Liên hệ»
-            <input
-              required
-              type="number"
-              min="0"
-              step="1000"
-              value={form.price}
-              onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-            />
-          </label>
         </div>
-        <div className="admin-form__row">
-          <label>
-            Giá gốc (gạch ngang, tuỳ chọn)
-            <input
-              type="number"
-              min="0"
-              step="1000"
-              value={form.old_price}
-              onChange={(e) => setForm((f) => ({ ...f, old_price: e.target.value }))}
-            />
-          </label>
+
+        <div className="admin-product-pricing">
+          <div className="admin-product-pricing__title">Giá (niêm yết → giảm % → giá bán)</div>
+          <p className="admin-product-pricing__hint">
+            Nhập <strong>giá niêm yết</strong> và <strong>% giảm</strong> — <strong>giá bán</strong> tự tính. Có thể sửa tay giá
+            bán; % sẽ cập nhật theo. Giá niêm yết hiển thị gạch ngang trên trang khách nếu có.
+          </p>
+          <div className="admin-form__row">
+            <label>
+              Giá niêm yết / trước giảm (đ)
+              <input
+                type="number"
+                min="0"
+                step="1000"
+                value={form.old_price}
+                onChange={(e) => setOldPriceForDiscount(e.target.value)}
+                placeholder="VD: 1.500.000"
+              />
+            </label>
+            <label>
+              Giảm (%)
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={form.discount_percent}
+                onChange={(e) => setDiscountPercent(e.target.value)}
+                placeholder="0 – 100"
+              />
+            </label>
+            <label>
+              Giá bán (đ) — lưu vào hệ thống
+              <input
+                required
+                type="number"
+                min="0"
+                step="1000"
+                value={form.price}
+                onChange={(e) => setPriceManual(e.target.value)}
+              />
+            </label>
+          </div>
+          <p className="admin-page__muted" style={{ marginTop: "0.35rem", fontSize: "0.78rem" }}>
+            Để 0 giá bán nếu chỉ «Liên hệ». Không nhập giá niêm yết thì chỉ cần điền giá bán.
+          </p>
         </div>
         <div className="admin-form__row" style={{ flexWrap: "wrap", gap: "0.75rem" }}>
           <label style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>

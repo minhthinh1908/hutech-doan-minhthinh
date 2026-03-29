@@ -188,6 +188,89 @@
   color: #444;
 }
 
+.detail-page__reviews--hint {
+  font-size: 0.88rem;
+  color: #555;
+  margin-bottom: 1rem;
+}
+
+.detail-page__review-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.65rem;
+}
+
+.detail-page__review-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+}
+
+.detail-page__review-badge--pending {
+  background: #fff8e1;
+  color: #f57f17;
+}
+
+.detail-page__review-badge--rejected {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.detail-page__review-comments {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0 0 0 0.75rem;
+  border-left: 2px solid #e0e0e0;
+}
+
+.detail-page__review-comments-item {
+  margin-bottom: 0.5rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.detail-page__review-comments-body {
+  display: block;
+  margin-top: 0.2rem;
+  color: #444;
+  font-weight: 400;
+}
+
+.detail-page__review-comments-del {
+  margin-left: 0.5rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #c62828;
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.detail-page__review-comment-form {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detail-page__review-field--inline textarea {
+  min-height: 2.5rem;
+}
+
+.detail-page__review-field-label {
+  font-size: 0.8rem;
+}
+
+.detail-page__cta--small {
+  align-self: flex-start;
+  padding: 0.45rem 1rem;
+  font-size: 0.8rem;
+}
+
 .detail-page__review-form {
   margin-top: 1rem;
   padding: 1rem;

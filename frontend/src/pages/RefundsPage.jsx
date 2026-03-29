@@ -8,6 +8,22 @@ function money(n) {
   return Number(n || 0).toLocaleString("vi-VN");
 }
 
+function refundStatusVi(s) {
+  const m = {
+    pending: "Chờ xử lý",
+    approved: "Đã duyệt",
+    rejected: "Từ chối",
+    completed: "Hoàn tất"
+  };
+  return m[s] || s || "—";
+}
+
+function clip(s, n = 100) {
+  if (!s) return "—";
+  const t = String(s).trim();
+  return t.length <= n ? t : `${t.slice(0, n)}…`;
+}
+
 export default function RefundsPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,8 +52,8 @@ export default function RefundsPage() {
         <div className="container">
           <h1 className="buyer-page__title">Hoàn tiền / đổi trả</h1>
           <p className="buyer-page__sub">
-            Danh sách yêu cầu hoàn tiền. Bạn có thể tạo yêu cầu mới trong chi tiết đơn hàng (
-            <Link to="/don-hang">Request Refund</Link>).
+            Danh sách yêu cầu hoàn tiền, lý do, ghi chú của bạn và phản hồi từ cửa hàng. Tạo yêu cầu mới trong{" "}
+            <Link to="/don-hang">chi tiết đơn hàng</Link>.
           </p>
         </div>
       </div>
@@ -62,6 +78,9 @@ export default function RefundsPage() {
                     <th>Đơn hàng</th>
                     <th>Số tiền</th>
                     <th>Trạng thái</th>
+                    <th>Lý do</th>
+                    <th>Ghi chú của bạn</th>
+                    <th>Phản hồi cửa hàng</th>
                     <th>Ngày</th>
                   </tr>
                 </thead>
@@ -73,8 +92,19 @@ export default function RefundsPage() {
                         <Link to={`/don-hang/${r.order_id}`}>#{r.order_id}</Link>
                       </td>
                       <td>{money(r.refund_amount)}đ</td>
-                      <td>{r.refund_status}</td>
-                      <td>{r.request_date ? new Date(r.request_date).toLocaleString("vi-VN") : "—"}</td>
+                      <td>{refundStatusVi(r.refund_status)}</td>
+                      <td style={{ maxWidth: 200, fontSize: "0.85rem" }} title={r.reason}>
+                        {clip(r.reason, 120)}
+                      </td>
+                      <td style={{ maxWidth: 180, fontSize: "0.85rem" }} title={r.buyer_note || ""}>
+                        {r.buyer_note ? clip(r.buyer_note, 80) : "—"}
+                      </td>
+                      <td style={{ maxWidth: 200, fontSize: "0.85rem", color: "#1565c0" }} title={r.admin_note || ""}>
+                        {r.admin_note ? clip(r.admin_note, 100) : "—"}
+                      </td>
+                      <td style={{ fontSize: "0.85rem", whiteSpace: "nowrap" }}>
+                        {r.request_date ? new Date(r.request_date).toLocaleString("vi-VN") : "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

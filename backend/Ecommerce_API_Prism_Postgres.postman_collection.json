@@ -332,6 +332,23 @@
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": { "raw": "{{baseUrl}}/api/reviews/1", "host": ["{{baseUrl}}"], "path": ["api", "reviews", "1"] }
           }
+        },
+        {
+          "name": "POST /api/reviews/:reviewId/comments",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"body\": \"Đồng ý, sản phẩm dùng tốt.\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/reviews/1/comments", "host": ["{{baseUrl}}"], "path": ["api", "reviews", "1", "comments"] }
+          }
+        },
+        {
+          "name": "DELETE /api/reviews/comments/:commentId",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/reviews/comments/1", "host": ["{{baseUrl}}"], "path": ["api", "reviews", "comments", "1"] }
+          }
         }
       ]
     },
@@ -380,7 +397,7 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Wrong item\",\n  \"refund_amount\": 100000\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Wrong item\",\n  \"buyer_note\": \"Ghi chú thêm (tuỳ chọn)\",\n  \"refund_amount\": 100000\n}" },
             "url": {
               "raw": "{{baseUrl}}/api/refund-requests/orders/1",
               "host": ["{{baseUrl}}"],
@@ -411,6 +428,14 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": { "raw": "{{baseUrl}}/api/admin/users", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users"] }
+          }
+        },
+        {
+          "name": "GET /api/admin/users/:user_id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/users/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users", "1"] }
           }
         },
         {
@@ -448,11 +473,78 @@
           }
         },
         {
+          "name": "GET /api/admin/reviews",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/reviews?moderation_status=all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "reviews"],
+              "query": [{ "key": "moderation_status", "value": "all", "description": "all | pending | approved | rejected" }]
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/admin/reviews/:review_id",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"moderation_status\": \"approved\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/admin/reviews/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "reviews", "1"] }
+          }
+        },
+        {
+          "name": "DELETE /api/admin/reviews/:review_id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/reviews/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "reviews", "1"] }
+          }
+        },
+        {
+          "name": "DELETE /api/admin/review-comments/:review_comment_id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/review-comments/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "review-comments", "1"] }
+          }
+        },
+        {
           "name": "GET /api/admin/orders",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": { "raw": "{{baseUrl}}/api/admin/orders", "host": ["{{baseUrl}}"], "path": ["api", "admin", "orders"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orders?order_status=all&q=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "orders"],
+              "query": [
+                {
+                  "key": "order_status",
+                  "value": "all",
+                  "description": "Lọc: all | pending | confirmed | shipping | completed | cancelled | processing | shipped"
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "Tìm đúng mã đơn (số), ví dụ 12 — có thể kết hợp với order_status"
+                },
+                {
+                  "key": "user_id",
+                  "value": "",
+                  "description": "Tuỳ chọn: chỉ đơn của user (vd. lịch sử trong quản lý người dùng)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/orders/:order_id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/orders/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "orders", "1"] }
           }
         },
         {
@@ -460,7 +552,7 @@
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "body": { "mode": "raw", "raw": "{\n  \"order_status\": \"processing\",\n  \"payment_status\": \"paid\"\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"order_status\": \"confirmed\",\n  \"payment_status\": \"paid\"\n}" },
             "url": { "raw": "{{baseUrl}}/api/admin/orders/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "orders", "1"] }
           }
         },
@@ -486,7 +578,7 @@
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "body": { "mode": "raw", "raw": "{\n  \"status\": \"active\"\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"active\",\n  \"admin_note\": \"Ghi chú nội bộ admin (tuỳ chọn)\"\n}" },
             "url": { "raw": "{{baseUrl}}/api/admin/warranties/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "warranties", "1"] }
           }
         },
@@ -520,7 +612,7 @@
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "body": { "mode": "raw", "raw": "{\n  \"refund_status\": \"approved\"\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"refund_status\": \"approved\",\n  \"admin_note\": \"Phản hồi cho khách (ghi chú shop)\"\n}" },
             "url": { "raw": "{{baseUrl}}/api/admin/refund-requests/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "refund-requests", "1"] }
           }
         },

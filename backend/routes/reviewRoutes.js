@@ -10,6 +10,8 @@ router.post(
     verifyToken,
     asyncHandler(reviewController.create)
 );
+router.post("/:reviewId/comments", verifyToken, asyncHandler(reviewController.createComment));
+router.delete("/comments/:commentId", verifyToken, asyncHandler(reviewController.removeComment));
 router.patch("/:id", verifyToken, asyncHandler(reviewController.update));
 router.delete("/:id", verifyToken, asyncHandler(reviewController.remove));
 

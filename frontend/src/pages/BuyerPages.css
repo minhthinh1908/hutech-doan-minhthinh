@@ -199,6 +199,19 @@
   color: #c62828;
 }
 
+.buyer-btn--link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #1565c0;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.buyer-btn--link:hover {
+  color: #0d47a1;
+}
+
 .buyer-cart-row {
   display: grid;
   grid-template-columns: 90px 1fr auto auto;
@@ -250,6 +263,68 @@
   margin-bottom: 0.75rem;
 }
 
+.buyer-voucher-flow-hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+  color: #555;
+  line-height: 1.45;
+  max-width: 32rem;
+}
+
+.buyer-voucher-result {
+  margin: 0.75rem 0;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #c8e6c9;
+  background: #f1f8f4;
+}
+
+.buyer-voucher-result--ok {
+  color: #1b3d24;
+}
+
+.buyer-voucher-result__title {
+  font-weight: 800;
+  font-size: 0.95rem;
+  margin-bottom: 0.65rem;
+  letter-spacing: 0.02em;
+}
+
+.buyer-voucher-result__lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.buyer-voucher-result__lines li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.buyer-voucher-result__lines li:last-child {
+  border-bottom: none;
+}
+
+.buyer-voucher-result__discount {
+  color: #b71c1c;
+}
+
+.buyer-voucher-result__total {
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.buyer-voucher-result__total strong {
+  font-size: 1.05rem;
+}
+
 .buyer-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -283,4 +358,197 @@
   border: 1px solid #ccc;
   border-radius: 4px;
   margin-bottom: 0.75rem;
+}
+
+.buyer-modal--wide {
+  max-width: 520px;
+}
+
+.buyer-repair-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  font-size: 0.9rem;
+}
+
+.buyer-repair-detail__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.buyer-repair-detail__label {
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #555;
+  min-width: 8rem;
+}
+
+.buyer-repair-detail__block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.buyer-repair-detail__block--highlight {
+  margin-top: 0.25rem;
+  padding: 0.75rem;
+  background: #f8faf8;
+  border: 1px solid #e0e8e0;
+  border-radius: 6px;
+}
+
+.buyer-repair-detail__text {
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.buyer-repair-detail__imgs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.buyer-repair-detail__imgs a {
+  display: block;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+}
+
+.buyer-repair-detail__imgs img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  display: block;
+}
+
+.buyer-repair-upload {
+  margin: 0.5rem 0 0;
+}
+
+.buyer-repair-upload__input {
+  font-size: 0.85rem;
+}
+
+.buyer-repair-upload__previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.buyer-repair-upload__thumb {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #ddd;
+}
+
+.buyer-repair-upload__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.buyer-repair-upload__remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Badge trạng thái sửa chữa (đồng bộ admin) */
+.bd-repair-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.bd-repair-badge--pending {
+  background: #eef1f4;
+  color: #4a5568;
+}
+.bd-repair-badge--received {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.bd-repair-badge--checking {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+.bd-repair-badge--progress {
+  background: #ffedd5;
+  color: #c2410c;
+}
+.bd-repair-badge--parts {
+  background: #fef3c7;
+  color: #b45309;
+}
+.bd-repair-badge--repaired {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+.bd-repair-badge--rejected {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.bd-repair-badge--completed {
+  background: #dcfce7;
+  color: #15803d;
+}
+.bd-repair-badge--cancelled {
+  background: #e5e7eb;
+  color: #374151;
+}
+.bd-repair-badge--muted {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.buyer-refund-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.buyer-refund-list__item {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  line-height: 1.5;
+  font-size: 0.9rem;
+}
+
+.buyer-refund-list__label {
+  font-weight: 700;
+  color: #333;
+  margin-right: 0.25rem;
+}
+
+.buyer-refund-list__admin {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed #ddd;
+  color: #1565c0;
 }

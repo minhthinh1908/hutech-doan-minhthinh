@@ -31,4 +31,23 @@ const authorizeRoles = (...allowedRoles) => {
     };
 };
 
-module.exports = { verifyToken, authorizeRoles };
+/** Gắn req.user nếu có Bearer hợp lệ; không thì tiếp tục (cho API công khai có thêm dữ liệu khi đã đăng nhập). */
+function optionalVerifyToken(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return next();
+    }
+    const token = authHeader.split(" ")[1];
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded && decoded.user_id != null) {
+            decoded.user_id = String(decoded.user_id);
+        }
+        req.user = decoded;
+    } catch {
+        // bỏ qua token lỗi — coi như khách
+    }
+    next();
+}
+
+module.exports = { verifyToken, authorizeRoles, optionalVerifyToken };

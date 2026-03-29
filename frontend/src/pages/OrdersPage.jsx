@@ -11,8 +11,10 @@ function money(n) {
 function orderStatusVi(s) {
   const m = {
     pending: "Chờ xử lý",
+    confirmed: "Đã xác nhận",
+    shipping: "Đang giao",
     processing: "Đang xử lý",
-    shipped: "Đang giao",
+    shipped: "Đang giao (cũ)",
     completed: "Hoàn thành",
     cancelled: "Đã hủy"
   };

@@ -11,8 +11,10 @@ function money(n) {
 function orderStatusVi(s) {
   const m = {
     pending: "Chờ xử lý",
+    confirmed: "Đã xác nhận",
+    shipping: "Đang giao",
     processing: "Đang xử lý",
-    shipped: "Đang giao",
+    shipped: "Đang giao (cũ)",
     completed: "Hoàn thành",
     cancelled: "Đã hủy"
   };
@@ -45,6 +47,7 @@ export default function OrderDetailPage() {
   const [payErr, setPayErr] = useState("");
   const [paying, setPaying] = useState(false);
   const [refundReason, setRefundReason] = useState("");
+  const [refundBuyerNote, setRefundBuyerNote] = useState("");
   const [refundAmount, setRefundAmount] = useState("");
   const [refundMsg, setRefundMsg] = useState("");
   const [refundErr, setRefundErr] = useState("");
@@ -108,12 +111,14 @@ export default function OrderDetailPage() {
         `/refund-requests/orders/${id}`,
         {
           reason: refundReason.trim(),
+          buyer_note: refundBuyerNote.trim() || undefined,
           refund_amount: Number(refundAmount)
         },
         { auth: true }
       );
       setRefundMsg("Đã gửi yêu cầu hoàn tiền / đổi trả.");
       setRefundReason("");
+      setRefundBuyerNote("");
       const o = await apiGet(`/orders/${id}`);
       setOrder(o);
     } catch (e) {
@@ -246,11 +251,25 @@ export default function OrderDetailPage() {
               Yêu cầu hoàn tiền / đổi trả
             </h3>
             {(order.refund_requests || []).length > 0 ? (
-              <ul className="buyer-muted">
+              <ul className="buyer-refund-list buyer-muted">
                 {order.refund_requests.map((r) => (
-                  <li key={r.refund_request_id}>
-                    {money(r.refund_amount)}đ — {r.refund_status} — {r.reason?.slice(0, 80)}
-                    {r.reason?.length > 80 ? "…" : ""}
+                  <li key={r.refund_request_id} className="buyer-refund-list__item">
+                    <strong>
+                      {money(r.refund_amount)}đ — {r.refund_status}
+                    </strong>
+                    <div>
+                      <span className="buyer-refund-list__label">Lý do:</span> {r.reason || "—"}
+                    </div>
+                    {r.buyer_note ? (
+                      <div>
+                        <span className="buyer-refund-list__label">Ghi chú của bạn:</span> {r.buyer_note}
+                      </div>
+                    ) : null}
+                    {r.admin_note ? (
+                      <div className="buyer-refund-list__admin">
+                        <span className="buyer-refund-list__label">Phản hồi cửa hàng:</span> {r.admin_note}
+                      </div>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -264,6 +283,16 @@ export default function OrderDetailPage() {
                   value={refundReason}
                   onChange={(e) => setRefundReason(e.target.value)}
                   required
+                />
+              </label>
+              <label className="buyer-form__field">
+                <span className="buyer-form__label">Ghi chú thêm (tuỳ chọn)</span>
+                <textarea
+                  className="buyer-form__input"
+                  style={{ minHeight: 64 }}
+                  placeholder="Ví dụ: STK nhận hoàn, hình ảnh tem máy…"
+                  value={refundBuyerNote}
+                  onChange={(e) => setRefundBuyerNote(e.target.value)}
                 />
               </label>
               <label className="buyer-form__field">

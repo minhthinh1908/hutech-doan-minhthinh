@@ -3,7 +3,7 @@ const prisma = require("../prisma/client");
 async function createForOrder(req, res) {
     const user_id = BigInt(req.user.user_id);
     const order_id = BigInt(req.params.order_id);
-    const { reason, refund_amount } = req.body;
+    const { reason, refund_amount, buyer_note } = req.body;
     if (!reason) return res.status(400).json({ message: "reason is required" });
     if (refund_amount == null) {
         return res.status(400).json({ message: "refund_amount is required" });
@@ -11,11 +11,15 @@ async function createForOrder(req, res) {
     const order = await prisma.order.findFirst({ where: { order_id, user_id } });
     if (!order) return res.status(404).json({ message: "Order not found" });
 
+    const note =
+        buyer_note != null && String(buyer_note).trim() !== "" ? String(buyer_note).trim() : null;
+
     const rr = await prisma.refundRequest.create({
         data: {
             order_id,
             user_id,
             reason,
+            buyer_note: note,
             refund_amount,
             refund_status: "pending"
         }
