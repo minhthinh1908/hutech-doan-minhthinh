@@ -256,4 +256,3 @@ Các nhóm route đăng ký trong `backend/app.js` (đường dẫn đầy đủ
 - Họ tên: Đặng Minh Thịnh
 - GVHD: Lê Thị Ngọc Thơ
 - Lớp: 20BOIT02
-Dự án phục vụ **báo cáo đồ án** — ghi rõ thành viên nhóm, giảng viên hướng dẫn và khóa học tại phần bìa/báo cáo chính thức.
