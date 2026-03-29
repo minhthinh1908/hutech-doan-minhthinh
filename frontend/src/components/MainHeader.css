@@ -1,0 +1,360 @@
+.main-header {
+  background: var(--bd-white);
+  border-bottom: 1px solid #eee;
+}
+
+.main-header__inner {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  align-items: center;
+  gap: 1rem 1.25rem;
+  padding: 0.85rem 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.main-header__account {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  max-width: 160px;
+}
+
+.main-header__user {
+  color: #333;
+  text-align: right;
+  line-height: 1.25;
+}
+
+.main-header__user strong {
+  display: inline-block;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.main-header__auth-link {
+  font-weight: 700;
+  color: var(--bd-black);
+  text-decoration: underline;
+  font-size: 0.78rem;
+}
+
+.main-header__auth-link--emph {
+  color: #b8860b;
+}
+
+.main-header__link-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-decoration: underline;
+  cursor: pointer;
+  color: #666;
+}
+
+.main-header__logo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--bd-black);
+  text-decoration: none;
+}
+
+/* Viền LED chạy quanh logo */
+.main-header__logo-led {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 12px;
+  line-height: 0;
+  background: linear-gradient(90deg, #ff0080, #00e5ff, #ffea00, #b400ff, #00ff88, #ff0080);
+  background-size: 400% 100%;
+  animation: main-header-logo-led 4s linear infinite;
+  box-shadow:
+    0 0 10px rgba(255, 204, 0, 0.3),
+    0 0 20px rgba(0, 229, 255, 0.12);
+}
+
+/* Logo: icon trên, chữ dưới — gọn */
+.logo-compact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--bd-white);
+}
+
+.logo-compact--stacked {
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.35rem 0.55rem 0.3rem;
+  text-align: center;
+}
+
+.logo-compact__icon {
+  flex-shrink: 0;
+  display: block;
+  width: 70px;
+  height: auto;
+}
+
+.logo-compact__words {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.05rem;
+  line-height: 1.1;
+}
+
+/* Tên địa phương — vàng đậm, không ép IN HOA */
+.logo-compact__line1 {
+  font-family: var(--font, "Be Vietnam Pro", system-ui, sans-serif);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #c99700;
+  -webkit-font-smoothing: antialiased;
+  animation: logo-compact-text-led 2.8s ease-in-out infinite;
+}
+
+.logo-compact__line2 {
+  font-family: var(--font, "Be Vietnam Pro", system-ui, sans-serif);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: var(--bd-yellow, #ffcc00);
+  text-transform: uppercase;
+  -webkit-font-smoothing: antialiased;
+  animation: logo-compact-text-led 2.8s ease-in-out infinite 0.15s;
+}
+
+@keyframes logo-compact-text-led {
+  0%,
+  100% {
+    text-shadow:
+      0 0 6px rgba(255, 204, 0, 0.55),
+      0 0 12px rgba(255, 140, 0, 0.25);
+  }
+  50% {
+    text-shadow:
+      0 0 8px rgba(0, 229, 255, 0.35),
+      0 0 14px rgba(255, 204, 0, 0.45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-compact__line1,
+  .logo-compact__line2 {
+    animation: none;
+    text-shadow: 0 0 8px rgba(255, 204, 0, 0.35);
+  }
+}
+
+@keyframes main-header-logo-led {
+  to {
+    background-position: 400% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-header__logo-led {
+    animation: none;
+    background: linear-gradient(90deg, #ffcc00, #00c8ff);
+  }
+}
+
+.main-header__search-wrap {
+  min-width: 0;
+}
+
+.main-header__search {
+  display: flex;
+  border: 2px solid var(--bd-yellow);
+  border-radius: 999px;
+  overflow: hidden;
+  max-width: 520px;
+}
+
+.main-header__input {
+  flex: 1;
+  border: none;
+  padding: 0.55rem 1rem;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.main-header__search-btn {
+  background: var(--bd-yellow);
+  border: none;
+  padding: 0.55rem 1.25rem;
+  font-weight: 800;
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  -webkit-font-smoothing: antialiased;
+}
+
+.main-header__search-btn:hover {
+  background: var(--bd-yellow-dark);
+}
+
+.main-header__hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  color: #555;
+}
+
+.main-header__hotline {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  min-width: 0;
+}
+
+.main-header__hotline-title {
+  margin: 0 0 0.35rem;
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bd-black);
+}
+
+.main-header__hotline-rows {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+.main-header__hotline-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bd-yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bd-black);
+  flex-shrink: 0;
+}
+
+.main-header__hotline-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.main-header__phone-row {
+  display: block;
+  color: var(--bd-black);
+  white-space: nowrap;
+}
+
+.main-header__phone-num {
+  color: var(--bd-red-phone);
+  font-weight: 700;
+}
+
+.main-header__cart {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: 150px;
+}
+
+.main-header__cart-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bd-yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bd-black);
+  flex-shrink: 0;
+}
+
+.main-header__cart-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  font-size: 0.78rem;
+}
+
+.main-header__cart-label {
+  font-weight: 700;
+}
+
+.main-header__cart-count {
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1024px) {
+  .main-header__inner {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "logo hotline"
+      "search search"
+      "account account"
+      "cart cart";
+  }
+  .main-header__logo {
+    grid-area: logo;
+  }
+  .main-header__hotline {
+    grid-area: hotline;
+    justify-self: end;
+  }
+  .main-header__search-wrap {
+    grid-area: search;
+  }
+  .main-header__account {
+    grid-area: account;
+    flex-direction: row;
+    justify-content: center;
+    max-width: none;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .main-header__cart {
+    grid-area: cart;
+    max-width: none;
+    justify-self: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .main-header__hotline {
+    display: none;
+  }
+  .main-header__inner {
+    grid-template-columns: 1fr;
+    grid-template-areas: "logo" "search" "account" "cart";
+  }
+
+  .logo-compact--stacked {
+    padding: 0.28rem 0.4rem 0.22rem;
+    gap: 0.15rem;
+  }
+
+  .logo-compact__icon {
+    width: 62px;
+  }
+
+  .logo-compact__line1 {
+    font-size: 0.6rem;
+  }
+
+  .logo-compact__line2 {
+    font-size: 0.65rem;
+    letter-spacing: 0.16em;
+  }
+}

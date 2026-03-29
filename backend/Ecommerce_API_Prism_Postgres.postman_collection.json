@@ -1,0 +1,663 @@
+{
+  "info": {
+    "_postman_id": "ecommerce-api-prisma-postgres",
+    "name": "Ecommerce API (Prisma + Postgres)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Optional: set default JSON header",
+          "pm.request.headers.upsert({ key: 'Content-Type', value: 'application/json' });"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/", "host": ["{{baseUrl}}"], "path": [""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /api/auth/register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Test Buyer\",\n  \"email\": \"buyer1@example.com\",\n  \"password\": \"123456\",\n  \"phone\": \"0123456789\",\n  \"role_name\": \"buyer\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "POST /api/auth/login (save tokens)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  if (json && json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"buyer1@example.com\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "POST /api/auth/refresh (rotate, save tokens)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  if (json && json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  if (json && json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "POST /api/auth/logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "GET /api/auth/me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "GET /api/auth/admin (admin-only)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/admin",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "admin"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catalog (Public)",
+      "item": [
+        {
+          "name": "GET /api/categories",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/categories", "host": ["{{baseUrl}}"], "path": ["api", "categories"] }
+          }
+        },
+        {
+          "name": "GET /api/categories/:id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/categories/1", "host": ["{{baseUrl}}"], "path": ["api", "categories", "1"] }
+          }
+        },
+        {
+          "name": "GET /api/brands",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/brands", "host": ["{{baseUrl}}"], "path": ["api", "brands"] }
+          }
+        },
+        {
+          "name": "GET /api/brands/:id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/brands/1", "host": ["{{baseUrl}}"], "path": ["api", "brands", "1"] }
+          }
+        },
+        {
+          "name": "GET /api/products (paging/filter)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/products?page=1&limit=20&q=&sort=price_asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "q", "value": "" },
+                { "key": "sort", "value": "price_asc" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/products/:id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/products/1", "host": ["{{baseUrl}}"], "path": ["api", "products", "1"] }
+          }
+        },
+        {
+          "name": "GET /api/products/:id/reviews",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/products/1/reviews", "host": ["{{baseUrl}}"], "path": ["api", "products", "1", "reviews"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart (User)",
+      "item": [
+        {
+          "name": "GET /api/cart",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/cart", "host": ["{{baseUrl}}"], "path": ["api", "cart"] }
+          }
+        },
+        {
+          "name": "POST /api/cart/items",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"product_id\": \"1\",\n  \"quantity\": 1\n}" },
+            "url": { "raw": "{{baseUrl}}/api/cart/items", "host": ["{{baseUrl}}"], "path": ["api", "cart", "items"] }
+          }
+        },
+        {
+          "name": "PATCH /api/cart/items/:cart_item_id",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"quantity\": 2\n}" },
+            "url": { "raw": "{{baseUrl}}/api/cart/items/1", "host": ["{{baseUrl}}"], "path": ["api", "cart", "items", "1"] }
+          }
+        },
+        {
+          "name": "DELETE /api/cart/items/:cart_item_id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/cart/items/1", "host": ["{{baseUrl}}"], "path": ["api", "cart", "items", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders & Payments (User)",
+      "item": [
+        {
+          "name": "POST /api/orders (checkout)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"voucher_code\": \"\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] }
+          }
+        },
+        {
+          "name": "GET /api/orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] }
+          }
+        },
+        {
+          "name": "GET /api/orders/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/orders/1", "host": ["{{baseUrl}}"], "path": ["api", "orders", "1"] }
+          }
+        },
+        {
+          "name": "POST /api/orders/:id/payments",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"payment_method\": \"cod\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/orders/1/payments", "host": ["{{baseUrl}}"], "path": ["api", "orders", "1", "payments"] }
+          }
+        },
+        {
+          "name": "GET /api/orders/:id/payments",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/orders/1/payments", "host": ["{{baseUrl}}"], "path": ["api", "orders", "1", "payments"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews (User)",
+      "item": [
+        {
+          "name": "POST /api/reviews/products/:productId",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Good product\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/reviews/products/1", "host": ["{{baseUrl}}"], "path": ["api", "reviews", "products", "1"] }
+          }
+        },
+        {
+          "name": "PATCH /api/reviews/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"rating\": 4,\n  \"comment\": \"Updated review\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/reviews/1", "host": ["{{baseUrl}}"], "path": ["api", "reviews", "1"] }
+          }
+        },
+        {
+          "name": "DELETE /api/reviews/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/reviews/1", "host": ["{{baseUrl}}"], "path": ["api", "reviews", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Warranty / Repair / Refund (User)",
+      "item": [
+        {
+          "name": "GET /api/warranties",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/warranties", "host": ["{{baseUrl}}"], "path": ["api", "warranties"] }
+          }
+        },
+        {
+          "name": "GET /api/repair-requests",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/repair-requests", "host": ["{{baseUrl}}"], "path": ["api", "repair-requests"] }
+          }
+        },
+        {
+          "name": "POST /api/repair-requests/warranties/:warranty_id",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"issue_description\": \"Device not powering on\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/repair-requests/warranties/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "repair-requests", "warranties", "1"]
+            }
+          }
+        },
+        {
+          "name": "GET /api/refund-requests",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/refund-requests", "host": ["{{baseUrl}}"], "path": ["api", "refund-requests"] }
+          }
+        },
+        {
+          "name": "POST /api/refund-requests/orders/:order_id",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Wrong item\",\n  \"refund_amount\": 100000\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/refund-requests/orders/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "refund-requests", "orders", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vouchers",
+      "item": [
+        {
+          "name": "GET /api/vouchers/code/:code (public)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/vouchers/code/TEST10", "host": ["{{baseUrl}}"], "path": ["api", "vouchers", "code", "TEST10"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin (Bearer accessToken + role admin)",
+      "item": [
+        {
+          "name": "GET /api/admin/users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/users", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users"] }
+          }
+        },
+        {
+          "name": "PATCH /api/admin/users/:user_id",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"active\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/admin/users/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users", "1"] }
+          }
+        },
+        {
+          "name": "GET /api/admin/roles",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/roles", "host": ["{{baseUrl}}"], "path": ["api", "admin", "roles"] }
+          }
+        },
+        {
+          "name": "POST /api/admin/roles",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"role_name\": \"admin\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/admin/roles", "host": ["{{baseUrl}}"], "path": ["api", "admin", "roles"] }
+          }
+        },
+        {
+          "name": "DELETE /api/admin/roles/:role_id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/roles/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "roles", "1"] }
+          }
+        },
+        {
+          "name": "GET /api/admin/orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/orders", "host": ["{{baseUrl}}"], "path": ["api", "admin", "orders"] }
+          }
+        },
+        {
+          "name": "PATCH /api/admin/orders/:order_id",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"order_status\": \"processing\",\n  \"payment_status\": \"paid\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/admin/orders/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "orders", "1"] }
+          }
+        },
+        {
+          "name": "PATCH /api/admin/payments/:payment_id",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"payment_status\": \"paid\",\n  \"transaction_code\": \"TX123\",\n  \"paid_at\": \"2026-03-27T10:00:00.000Z\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/admin/payments/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "payments", "1"] }
+          }
+        },
+        {
+          "name": "GET /api/admin/warranties",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/warranties", "host": ["{{baseUrl}}"], "path": ["api", "admin", "warranties"] }
+          }
+        },
+        {
+          "name": "PATCH /api/admin/warranties/:warranty_id",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"active\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/admin/warranties/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "warranties", "1"] }
+          }
+        },
+        {
+          "name": "GET /api/admin/repair-requests",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/repair-requests", "host": ["{{baseUrl}}"], "path": ["api", "admin", "repair-requests"] }
+          }
+        },
+        {
+          "name": "PATCH /api/admin/repair-requests/:repair_request_id",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"repair_status\": \"in_progress\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/admin/repair-requests/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "repair-requests", "1"] }
+          }
+        },
+        {
+          "name": "GET /api/admin/refund-requests",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/refund-requests", "host": ["{{baseUrl}}"], "path": ["api", "admin", "refund-requests"] }
+          }
+        },
+        {
+          "name": "PATCH /api/admin/refund-requests/:refund_request_id",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"refund_status\": \"approved\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/admin/refund-requests/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "refund-requests", "1"] }
+          }
+        },
+        {
+          "name": "GET /api/admin/reports/revenue",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/reports/revenue?groupBy=day",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "reports", "revenue"],
+              "query": [{ "key": "groupBy", "value": "day" }]
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/reports/top-products",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/reports/top-products?limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "reports", "top-products"],
+              "query": [{ "key": "limit", "value": "10" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin CRUD: Categories/Brands/Products/Vouchers",
+      "item": [
+        {
+          "name": "POST /api/categories (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"category_name\": \"Laptop\",\n  \"description\": \"Laptop category\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/categories", "host": ["{{baseUrl}}"], "path": ["api", "categories"] }
+          }
+        },
+        {
+          "name": "PATCH /api/categories/:id (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"Updated\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/categories/1", "host": ["{{baseUrl}}"], "path": ["api", "categories", "1"] }
+          }
+        },
+        {
+          "name": "DELETE /api/categories/:id (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/categories/1", "host": ["{{baseUrl}}"], "path": ["api", "categories", "1"] }
+          }
+        },
+        {
+          "name": "POST /api/brands (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"brand_name\": \"Dell\",\n  \"description\": \"Brand\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/brands", "host": ["{{baseUrl}}"], "path": ["api", "brands"] }
+          }
+        },
+        {
+          "name": "POST /api/products (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": \"1\",\n  \"brand_id\": \"1\",\n  \"product_name\": \"Dell XPS\",\n  \"sku\": \"XPS-001\",\n  \"price\": 25000000,\n  \"stock_quantity\": 10,\n  \"warranty_months\": 12,\n  \"description\": \"Laptop\",\n  \"status\": \"active\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/products", "host": ["{{baseUrl}}"], "path": ["api", "products"] }
+          }
+        },
+        {
+          "name": "PATCH /api/products/:id (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"stock_quantity\": 20\n}" },
+            "url": { "raw": "{{baseUrl}}/api/products/1", "host": ["{{baseUrl}}"], "path": ["api", "products", "1"] }
+          }
+        },
+        {
+          "name": "DELETE /api/products/:id (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/products/1", "host": ["{{baseUrl}}"], "path": ["api", "products", "1"] }
+          }
+        },
+        {
+          "name": "POST /api/vouchers (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"TEST10\",\n  \"discount_type\": \"percent\",\n  \"discount_value\": 10,\n  \"min_order_value\": 0,\n  \"max_discount_amount\": 500000,\n  \"start_date\": \"2026-01-01T00:00:00.000Z\",\n  \"end_date\": \"2027-01-01T00:00:00.000Z\",\n  \"status\": \"active\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/vouchers", "host": ["{{baseUrl}}"], "path": ["api", "vouchers"] }
+          }
+        },
+        {
+          "name": "GET /api/vouchers (admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/vouchers", "host": ["{{baseUrl}}"], "path": ["api", "vouchers"] }
+          }
+        },
+        {
+          "name": "PATCH /api/vouchers/:id (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"inactive\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/vouchers/1", "host": ["{{baseUrl}}"], "path": ["api", "vouchers", "1"] }
+          }
+        },
+        {
+          "name": "DELETE /api/vouchers/:id (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/vouchers/1", "host": ["{{baseUrl}}"], "path": ["api", "vouchers", "1"] }
+          }
+        }
+      ]
+    }
+  ]
+}
+

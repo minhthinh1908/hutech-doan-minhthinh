@@ -1,0 +1,9 @@
+{
+  "watch": ["server.js", "app.js", "routes", "controllers", "middleware", "utils", "config", "prisma"],
+  "ext": "js,json",
+  "ignore": ["node_modules", "package-lock.json"],
+  "exec": "node server.js",
+  "legacyWatch": true,
+  "delay": 200
+}
+

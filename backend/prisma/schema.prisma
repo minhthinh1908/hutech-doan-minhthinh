@@ -1,0 +1,316 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  role_id   BigInt  @id @default(autoincrement())
+  role_name String
+  users     User[]
+
+  @@map("roles")
+}
+
+model User {
+  user_id         BigInt    @id @default(autoincrement())
+  role_id         BigInt
+  full_name       String
+  email           String    @unique
+  password_hash   String
+  phone           String?
+  status          String    @default("active")
+  created_at      DateTime  @default(now())
+
+  role            Role      @relation(fields: [role_id], references: [role_id])
+  cart            Cart?
+  orders          Order[]
+  reviews         Review[]
+  warranties      Warranty[]
+  repair_requests RepairRequest[]
+  refund_requests RefundRequest[]
+  refresh_tokens  RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  refresh_token_id BigInt   @id @default(autoincrement())
+  user_id          BigInt
+  token_hash       String   @unique
+  expires_at       DateTime
+  revoked_at       DateTime?
+  created_at       DateTime @default(now())
+
+  user             User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([expires_at])
+  @@map("refresh_tokens")
+}
+
+model Category {
+  category_id   BigInt    @id @default(autoincrement())
+  parent_id     BigInt?
+  category_name String
+  description   String?   @db.Text
+  sort_order    Int       @default(0)
+  parent        Category?  @relation("CategoryTree", fields: [parent_id], references: [category_id], onDelete: SetNull)
+  children      Category[] @relation("CategoryTree")
+  products      Product[]
+  categoryBrands CategoryBrand[]
+
+  @@map("categories")
+}
+
+model Brand {
+  brand_id   BigInt    @id @default(autoincrement())
+  brand_name String
+  description String?  @db.Text
+  products   Product[]
+  categoryBrands CategoryBrand[]
+
+  @@map("brands")
+}
+
+/// Thương hiệu hiển thị theo từng nhóm danh mục gốc (6 nhóm mega menu)
+model CategoryBrand {
+  category_id BigInt
+  brand_id    BigInt
+  category    Category @relation(fields: [category_id], references: [category_id], onDelete: Cascade)
+  brand       Brand    @relation(fields: [brand_id], references: [brand_id], onDelete: Cascade)
+
+  @@id([category_id, brand_id])
+  @@map("category_brands")
+}
+
+model Product {
+  product_id      BigInt    @id @default(autoincrement())
+  category_id     BigInt
+  brand_id        BigInt
+  product_name    String
+  sku             String    @unique
+  price           Decimal   @db.Decimal(10, 2)
+  stock_quantity  Int       @default(0)
+  warranty_months Int       @default(0)
+  description     String?   @db.Text
+  image_url       String?
+  status          String    @default("active")
+  /// Giá gốc (gạch ngang) — dùng tính % giảm trên thẻ sản phẩm
+  old_price       Decimal?  @db.Decimal(10, 2)
+  is_hot          Boolean   @default(false)
+  is_bestseller   Boolean   @default(false)
+  is_new          Boolean   @default(false)
+  contact_only    Boolean   @default(false)
+  /// Flash sale — hiển thị khi trong khoảng thời gian (hoặc để trống = không giới hạn phía đó)
+  is_flash_sale   Boolean   @default(false)
+  flash_sale_price Decimal? @db.Decimal(10, 2)
+  flash_sale_start DateTime?
+  flash_sale_end   DateTime?
+  /// Khối «Nổi bật» trang chủ (banner + nhãn kiểu khuyến mãi)
+  is_featured     Boolean   @default(false)
+  featured_banner_title    String?
+  featured_banner_subtitle String?
+  featured_label_1         String?
+  featured_label_2         String?
+  featured_side_image_url  String?
+
+  category        Category  @relation(fields: [category_id], references: [category_id])
+  brand           Brand     @relation(fields: [brand_id], references: [brand_id])
+  cart_items      CartItem[]
+  order_items     OrderItem[]
+  reviews         Review[]
+
+  @@map("products")
+}
+
+model Cart {
+  cart_id    BigInt    @id @default(autoincrement())
+  user_id    BigInt    @unique
+  created_at DateTime  @default(now())
+  status     String    @default("active")
+
+  user       User      @relation(fields: [user_id], references: [user_id])
+  cart_items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  cart_item_id BigInt  @id @default(autoincrement())
+  cart_id      BigInt
+  product_id   BigInt
+  quantity     Int     @default(1)
+  unit_price   Decimal @db.Decimal(10, 2)
+
+  cart         Cart    @relation(fields: [cart_id], references: [cart_id])
+  product      Product @relation(fields: [product_id], references: [product_id])
+
+  @@map("cart_items")
+}
+
+model Order {
+  order_id        BigInt    @id @default(autoincrement())
+  user_id         BigInt
+  order_date      DateTime  @default(now())
+  order_status    String    @default("pending")
+  subtotal        Decimal   @db.Decimal(10, 2)
+  discount_amount Decimal   @default(0.00) @db.Decimal(10, 2)
+  total_amount    Decimal   @db.Decimal(10, 2)
+  payment_status  String    @default("unpaid")
+
+  user            User           @relation(fields: [user_id], references: [user_id])
+  order_items     OrderItem[]
+  payments        Payment[]
+  order_vouchers  OrderVoucher[]
+  refund_requests RefundRequest[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  order_item_id BigInt  @id @default(autoincrement())
+  order_id      BigInt
+  product_id    BigInt
+  quantity      Int     @default(1)
+  unit_price    Decimal @db.Decimal(10, 2)
+  line_total    Decimal @db.Decimal(10, 2)
+
+  order         Order     @relation(fields: [order_id], references: [order_id])
+  product       Product   @relation(fields: [product_id], references: [product_id])
+  warranties    Warranty[]
+
+  @@map("order_items")
+}
+
+model Payment {
+  payment_id       BigInt    @id @default(autoincrement())
+  order_id         BigInt
+  payment_method   String
+  payment_status   String    @default("pending")
+  transaction_code String?
+  paid_at          DateTime?
+
+  order            Order  @relation(fields: [order_id], references: [order_id])
+
+  @@map("payments")
+}
+
+model Voucher {
+  voucher_id          BigInt    @id @default(autoincrement())
+  code                String    @unique
+  discount_type       String
+  discount_value      Decimal   @db.Decimal(10, 2)
+  min_order_value     Decimal   @default(0.00) @db.Decimal(10, 2)
+  max_discount_amount Decimal?  @db.Decimal(10, 2)
+  start_date          DateTime
+  end_date            DateTime
+  status              String    @default("active")
+  /// null = không giới hạn tổng lượt
+  usage_limit         Int?
+  usage_count         Int       @default(0)
+  /// null = không giới hạn mỗi user
+  per_user_limit      Int?
+  /// JSON mảng category_id (string); null/rỗng = áp dụng mọi danh mục
+  applicable_category_ids Json?
+
+  order_vouchers      OrderVoucher[]
+
+  @@map("vouchers")
+}
+
+model OrderVoucher {
+  order_voucher_id BigInt  @id @default(autoincrement())
+  order_id         BigInt
+  voucher_id       BigInt
+  discount_amount  Decimal @db.Decimal(10, 2)
+
+  order            Order   @relation(fields: [order_id], references: [order_id])
+  voucher          Voucher @relation(fields: [voucher_id], references: [voucher_id])
+
+  @@map("order_vouchers")
+}
+
+model Review {
+  review_id  BigInt   @id @default(autoincrement())
+  user_id    BigInt
+  product_id BigInt
+  rating     Int
+  comment    String?  @db.Text
+  created_at DateTime @default(now())
+
+  user       User     @relation(fields: [user_id], references: [user_id])
+  product    Product  @relation(fields: [product_id], references: [product_id])
+
+  @@map("reviews")
+}
+
+model Warranty {
+  warranty_id    BigInt    @id @default(autoincrement())
+  order_item_id  BigInt
+  user_id        BigInt
+  start_date     DateTime  @db.Date
+  end_date       DateTime  @db.Date
+  status         String    @default("active")
+
+  order_item     OrderItem @relation(fields: [order_item_id], references: [order_item_id])
+  user           User      @relation(fields: [user_id], references: [user_id])
+  repair_requests RepairRequest[]
+
+  @@map("warranties")
+}
+
+model RepairRequest {
+  repair_request_id BigInt    @id @default(autoincrement())
+  warranty_id       BigInt
+  user_id           BigInt
+  request_date      DateTime  @default(now())
+  issue_description String    @db.Text
+  repair_status     String    @default("pending")
+
+  warranty          Warranty  @relation(fields: [warranty_id], references: [warranty_id])
+  user              User      @relation(fields: [user_id], references: [user_id])
+
+  @@map("repair_requests")
+}
+
+model RefundRequest {
+  refund_request_id BigInt    @id @default(autoincrement())
+  order_id          BigInt
+  user_id           BigInt
+  request_date      DateTime  @default(now())
+  reason            String    @db.Text
+  refund_amount     Decimal   @db.Decimal(10, 2)
+  refund_status     String    @default("pending")
+
+  order             Order     @relation(fields: [order_id], references: [order_id])
+  user              User      @relation(fields: [user_id], references: [user_id])
+
+  @@map("refund_requests")
+}
+
+/// Chân trang website — một bản ghi (id = 1), chỉnh trong Admin
+model SiteFooter {
+  id                     Int      @id @default(1)
+  site_name              String   @default("BÌNH ĐỊNH TOOLS")
+  branch1_label          String?
+  branch1_phone          String?
+  branch1_address        String?  @db.Text
+  /// URL iframe Google Maps (Chia sẻ → Nhúng bản đồ)
+  branch1_map_embed_url  String?  @db.Text
+  branch2_label          String?
+  branch2_phone          String?
+  branch2_address        String?  @db.Text
+  branch2_map_embed_url  String?  @db.Text
+  email                  String?
+  website_url            String?
+  copyright_line         String?  @db.Text
+  /// [{ "label": "...", "to": "/duong-dan" } hoặc "href": "https://..." }]
+  policies_json          Json?
+  updated_at             DateTime @updatedAt
+
+  @@map("site_footer")
+}

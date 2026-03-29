@@ -1,0 +1,121 @@
+.auth-page {
+  padding-bottom: 3rem;
+}
+
+.auth-page__hero {
+  background: linear-gradient(135deg, var(--bd-yellow) 0%, #ffe066 100%);
+  padding: 1.25rem 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 3px solid var(--bd-black);
+}
+
+.auth-page__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.auth-page__lead {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  max-width: 36rem;
+  opacity: 0.9;
+}
+
+.auth-page__box {
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: var(--bd-white);
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.auth-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.auth-form__label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.auth-form__input {
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.auth-form__input:focus {
+  outline: none;
+  border-color: var(--bd-yellow);
+}
+
+.auth-form__error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #b00020;
+}
+
+.auth-form__info {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: #1b5e20;
+  background: #e8f5e9;
+  border-radius: 4px;
+  border: 1px solid #a5d6a7;
+}
+
+.auth-form__btn {
+  border: none;
+  border-radius: 4px;
+  padding: 0.65rem;
+  font-weight: 800;
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: var(--bd-black);
+  color: var(--bd-yellow);
+}
+
+.auth-form__btn:hover {
+  background: #222;
+}
+
+.auth-form__hint {
+  margin: 0;
+  font-size: 0.85rem;
+  text-align: center;
+  color: #555;
+}
+
+.auth-form__hint a {
+  font-weight: 700;
+  color: var(--bd-black);
+  text-decoration: underline;
+}
+
+.auth-form__success {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #1b5e20;
+}

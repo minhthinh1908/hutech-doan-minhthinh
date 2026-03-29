@@ -1,0 +1,197 @@
+@startuml
+hide circle
+skinparam linetype ortho
+skinparam entity {
+  BackgroundColor #F9F9F9
+  BorderColor #333333
+  FontSize 12
+}
+
+title Main Database ERD for E-commerce Website
+
+entity "roles" as roles {
+  *role_id : bigint <<PK>>
+  --
+  role_name : varchar
+}
+
+entity "users" as users {
+  *user_id : bigint <<PK>>
+  --
+  role_id : bigint <<FK>>
+  full_name : varchar
+  email : varchar
+  password_hash : varchar
+  phone : varchar
+  status : varchar
+  created_at : datetime
+}
+
+entity "categories" as categories {
+  *category_id : bigint <<PK>>
+  --
+  category_name : varchar
+  description : text
+}
+
+entity "brands" as brands {
+  *brand_id : bigint <<PK>>
+  --
+  brand_name : varchar
+  description : text
+}
+
+entity "products" as products {
+  *product_id : bigint <<PK>>
+  --
+  category_id : bigint <<FK>>
+  brand_id : bigint <<FK>>
+  product_name : varchar
+  sku : varchar
+  price : decimal
+  stock_quantity : int
+  warranty_months : int
+  description : text
+  status : varchar
+}
+
+entity "carts" as carts {
+  *cart_id : bigint <<PK>>
+  --
+  user_id : bigint <<FK>>
+  created_at : datetime
+  status : varchar
+}
+
+entity "cart_items" as cart_items {
+  *cart_item_id : bigint <<PK>>
+  --
+  cart_id : bigint <<FK>>
+  product_id : bigint <<FK>>
+  quantity : int
+  unit_price : decimal
+}
+
+entity "orders" as orders {
+  *order_id : bigint <<PK>>
+  --
+  user_id : bigint <<FK>>
+  order_date : datetime
+  order_status : varchar
+  subtotal : decimal
+  discount_amount : decimal
+  total_amount : decimal
+  payment_status : varchar
+}
+
+entity "order_items" as order_items {
+  *order_item_id : bigint <<PK>>
+  --
+  order_id : bigint <<FK>>
+  product_id : bigint <<FK>>
+  quantity : int
+  unit_price : decimal
+  line_total : decimal
+}
+
+entity "payments" as payments {
+  *payment_id : bigint <<PK>>
+  --
+  order_id : bigint <<FK>>
+  payment_method : varchar
+  payment_status : varchar
+  transaction_code : varchar
+  paid_at : datetime
+}
+
+entity "vouchers" as vouchers {
+  *voucher_id : bigint <<PK>>
+  --
+  code : varchar
+  discount_type : varchar
+  discount_value : decimal
+  min_order_value : decimal
+  max_discount_amount : decimal
+  start_date : datetime
+  end_date : datetime
+  status : varchar
+}
+
+entity "order_vouchers" as order_vouchers {
+  *order_voucher_id : bigint <<PK>>
+  --
+  order_id : bigint <<FK>>
+  voucher_id : bigint <<FK>>
+  discount_amount : decimal
+}
+
+entity "reviews" as reviews {
+  *review_id : bigint <<PK>>
+  --
+  user_id : bigint <<FK>>
+  product_id : bigint <<FK>>
+  rating : int
+  comment : text
+  created_at : datetime
+}
+
+entity "warranties" as warranties {
+  *warranty_id : bigint <<PK>>
+  --
+  order_item_id : bigint <<FK>>
+  user_id : bigint <<FK>>
+  start_date : date
+  end_date : date
+  status : varchar
+}
+
+entity "repair_requests" as repair_requests {
+  *repair_request_id : bigint <<PK>>
+  --
+  warranty_id : bigint <<FK>>
+  user_id : bigint <<FK>>
+  request_date : datetime
+  issue_description : text
+  repair_status : varchar
+}
+
+entity "refund_requests" as refund_requests {
+  *refund_request_id : bigint <<PK>>
+  --
+  order_id : bigint <<FK>>
+  user_id : bigint <<FK>>
+  request_date : datetime
+  reason : text
+  refund_amount : decimal
+  refund_status : varchar
+}
+
+roles ||--o{ users
+categories ||--o{ products
+brands ||--o{ products
+
+users ||--o| carts
+carts ||--o{ cart_items
+products ||--o{ cart_items
+
+users ||--o{ orders
+orders ||--o{ order_items
+products ||--o{ order_items
+
+orders ||--o{ payments
+
+orders ||--o{ order_vouchers
+vouchers ||--o{ order_vouchers
+
+users ||--o{ reviews
+products ||--o{ reviews
+
+order_items ||--o| warranties
+users ||--o{ warranties
+
+warranties ||--o{ repair_requests
+users ||--o{ repair_requests
+
+orders ||--o{ refund_requests
+users ||--o{ refund_requests
+@enduml

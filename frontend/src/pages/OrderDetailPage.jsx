@@ -1,0 +1,300 @@
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { apiGet, apiPost } from "../api/client.js";
+import BuyerSidebar from "../components/BuyerSidebar.jsx";
+import "./BuyerPages.css";
+
+function money(n) {
+  return Number(n || 0).toLocaleString("vi-VN");
+}
+
+function orderStatusVi(s) {
+  const m = {
+    pending: "Chờ xử lý",
+    processing: "Đang xử lý",
+    shipped: "Đang giao",
+    completed: "Hoàn thành",
+    cancelled: "Đã hủy"
+  };
+  return m[s] || s || "—";
+}
+
+function payStatusVi(s) {
+  const m = {
+    unpaid: "Chưa thanh toán",
+    paid: "Đã thanh toán",
+    pending: "Đang chờ",
+    refunded: "Đã hoàn tiền"
+  };
+  return m[s] || s || "—";
+}
+
+const PAY_METHODS = [
+  { value: "cod", label: "Thanh toán khi nhận hàng (COD)" },
+  { value: "bank_transfer", label: "Chuyển khoản ngân hàng" },
+  { value: "payment_gateway", label: "Cổng thanh toán trực tuyến" }
+];
+
+export default function OrderDetailPage() {
+  const { id } = useParams();
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+  const [payMethod, setPayMethod] = useState("cod");
+  const [payMsg, setPayMsg] = useState("");
+  const [payErr, setPayErr] = useState("");
+  const [paying, setPaying] = useState(false);
+  const [refundReason, setRefundReason] = useState("");
+  const [refundAmount, setRefundAmount] = useState("");
+  const [refundMsg, setRefundMsg] = useState("");
+  const [refundErr, setRefundErr] = useState("");
+  const [refunding, setRefunding] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setErr("");
+      try {
+        const o = await apiGet(`/orders/${id}`);
+        if (!cancelled) {
+          setOrder(o);
+          setRefundAmount(String(o.total_amount ?? ""));
+        }
+      } catch (e) {
+        if (!cancelled) setErr(e.message || "Không tìm thấy đơn.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  async function submitPayment() {
+    setPayMsg("");
+    setPayErr("");
+    setPaying(true);
+    try {
+      await apiPost(
+        `/orders/${id}/payments`,
+        { payment_method: payMethod },
+        { auth: true }
+      );
+      if (payMethod === "payment_gateway") {
+        setPayMsg(
+          "Yêu cầu thanh toán đã ghi nhận. Hệ thống sẽ chuyển hướng tới cổng thanh toán (demo — Payment Gateway)."
+        );
+      } else {
+        setPayMsg("Đã ghi nhận phương thức thanh toán. Trạng thái giao dịch: chờ xác nhận.");
+      }
+      const o = await apiGet(`/orders/${id}`);
+      setOrder(o);
+    } catch (e) {
+      setPayErr(e.message || "Không tạo được thanh toán.");
+    } finally {
+      setPaying(false);
+    }
+  }
+
+  async function submitRefund(e) {
+    e.preventDefault();
+    setRefundMsg("");
+    setRefundErr("");
+    setRefunding(true);
+    try {
+      await apiPost(
+        `/refund-requests/orders/${id}`,
+        {
+          reason: refundReason.trim(),
+          refund_amount: Number(refundAmount)
+        },
+        { auth: true }
+      );
+      setRefundMsg("Đã gửi yêu cầu hoàn tiền / đổi trả.");
+      setRefundReason("");
+      const o = await apiGet(`/orders/${id}`);
+      setOrder(o);
+    } catch (e) {
+      setRefundErr(e.message || "Gửi yêu cầu thất bại.");
+    } finally {
+      setRefunding(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="buyer-page container">
+        <p>Đang tải đơn hàng…</p>
+      </div>
+    );
+  }
+
+  if (err || !order) {
+    return (
+      <div className="buyer-page container">
+        <p className="buyer-msg buyer-msg--err">{err || "Không có dữ liệu."}</p>
+        <Link to="/don-hang">← Danh sách đơn</Link>
+      </div>
+    );
+  }
+
+  const items = order.order_items || [];
+  const payments = order.payments || [];
+
+  return (
+    <div className="buyer-page">
+      <div className="buyer-page__hero">
+        <div className="container">
+          <h1 className="buyer-page__title">Đơn hàng #{order.order_id}</h1>
+          <p className="buyer-page__sub">
+            {orderStatusVi(order.order_status)} · {payStatusVi(order.payment_status)}
+          </p>
+        </div>
+      </div>
+      <div className="container buyer-shell">
+        <BuyerSidebar />
+        <div className="buyer-panel">
+          <p>
+            <Link to="/don-hang">← Quay lại danh sách</Link>
+          </p>
+          <div className="buyer-checkout__row">
+            <span>Tạm tính</span>
+            <span>{money(order.subtotal)}đ</span>
+          </div>
+          <div className="buyer-checkout__row">
+            <span>Giảm giá</span>
+            <span>{money(order.discount_amount)}đ</span>
+          </div>
+          <div className="buyer-checkout__row">
+            <strong>Tổng thanh toán</strong>
+            <strong>{money(order.total_amount)}đ</strong>
+          </div>
+
+          <h3 style={{ marginTop: "1.25rem", fontSize: "1rem" }}>Sản phẩm</h3>
+          <div className="buyer-table-wrap">
+            <table className="buyer-table">
+              <thead>
+                <tr>
+                  <th>Sản phẩm</th>
+                  <th>SL</th>
+                  <th>Đơn giá</th>
+                  <th>Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((line) => (
+                  <tr key={line.order_item_id}>
+                    <td>{line.product?.product_name || "—"}</td>
+                    <td>{line.quantity}</td>
+                    <td>{money(line.unit_price)}đ</td>
+                    <td>{money(line.line_total)}đ</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <section style={{ marginTop: "1.5rem" }} aria-labelledby="pay-h">
+            <h3 id="pay-h" style={{ fontSize: "1rem" }}>
+              Thanh toán (Process Payment)
+            </h3>
+            <p className="buyer-muted" style={{ marginBottom: "0.75rem" }}>
+              Chọn phương thức để ghi nhận giao dịch. Với cổng thanh toán, hệ thống sẽ tương tác với Payment Gateway (demo).
+            </p>
+            {payments.length > 0 ? (
+              <ul className="buyer-muted">
+                {payments.map((p) => (
+                  <li key={p.payment_id}>
+                    #{p.payment_id} — {p.payment_method} — {p.payment_status}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <div className="buyer-form__field" style={{ maxWidth: 400 }}>
+              <span className="buyer-form__label">Phương thức</span>
+              <select
+                className="buyer-form__input"
+                value={payMethod}
+                onChange={(e) => setPayMethod(e.target.value)}
+              >
+                {PAY_METHODS.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {payErr ? (
+              <p className="buyer-msg buyer-msg--err" role="alert">
+                {payErr}
+              </p>
+            ) : null}
+            {payMsg ? (
+              <p className="buyer-msg buyer-msg--ok" role="status">
+                {payMsg}
+              </p>
+            ) : null}
+            <button type="button" className="buyer-form__btn" style={{ marginTop: "0.5rem" }} disabled={paying} onClick={submitPayment}>
+              {paying ? "Đang gửi…" : "Xác nhận thanh toán"}
+            </button>
+          </section>
+
+          <section style={{ marginTop: "1.75rem" }} aria-labelledby="ref-h">
+            <h3 id="ref-h" style={{ fontSize: "1rem" }}>
+              Yêu cầu hoàn tiền / đổi trả
+            </h3>
+            {(order.refund_requests || []).length > 0 ? (
+              <ul className="buyer-muted">
+                {order.refund_requests.map((r) => (
+                  <li key={r.refund_request_id}>
+                    {money(r.refund_amount)}đ — {r.refund_status} — {r.reason?.slice(0, 80)}
+                    {r.reason?.length > 80 ? "…" : ""}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <form onSubmit={submitRefund} className="buyer-form" style={{ maxWidth: 480 }}>
+              <label className="buyer-form__field">
+                <span className="buyer-form__label">Lý do</span>
+                <textarea
+                  className="buyer-form__input"
+                  style={{ minHeight: 88 }}
+                  value={refundReason}
+                  onChange={(e) => setRefundReason(e.target.value)}
+                  required
+                />
+              </label>
+              <label className="buyer-form__field">
+                <span className="buyer-form__label">Số tiền yêu cầu</span>
+                <input
+                  className="buyer-form__input"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={refundAmount}
+                  onChange={(e) => setRefundAmount(e.target.value)}
+                  required
+                />
+              </label>
+              {refundErr ? (
+                <p className="buyer-msg buyer-msg--err" role="alert">
+                  {refundErr}
+                </p>
+              ) : null}
+              {refundMsg ? (
+                <p className="buyer-msg buyer-msg--ok" role="status">
+                  {refundMsg}
+                </p>
+              ) : null}
+              <button type="submit" className="buyer-form__btn" disabled={refunding}>
+                {refunding ? "Đang gửi…" : "Gửi yêu cầu"}
+              </button>
+            </form>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}

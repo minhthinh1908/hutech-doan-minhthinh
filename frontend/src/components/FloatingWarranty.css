@@ -1,0 +1,72 @@
+.float-warranty-led-wrap {
+  position: fixed;
+  left: 1rem;
+  bottom: 1.25rem;
+  z-index: 50;
+  padding: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff0080, #00e5ff, #ffea00, #b400ff, #00ff88, #ff0080);
+  background-size: 400% 100%;
+  animation: float-warranty-led 4s linear infinite;
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.28),
+    0 0 20px rgba(255, 204, 0, 0.35),
+    0 0 32px rgba(0, 229, 255, 0.2);
+}
+
+@keyframes float-warranty-led {
+  to {
+    background-position: 400% 50%;
+  }
+}
+
+.float-warranty {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--bd-yellow);
+  color: var(--bd-black);
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  padding: 0.52rem 1rem;
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  -webkit-font-smoothing: antialiased;
+}
+
+.float-warranty__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.float-warranty:hover {
+  background: var(--bd-yellow-dark);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float-warranty-led-wrap {
+    animation: none;
+    background: linear-gradient(90deg, #ffcc00, #00c8ff);
+  }
+}
+
+@media (max-width: 480px) {
+  .float-warranty-led-wrap {
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: 0.75rem;
+    width: auto;
+    max-width: calc(100% - 1rem);
+  }
+
+  .float-warranty {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+}

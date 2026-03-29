@@ -1,0 +1,43 @@
+.home-rec {
+  padding: 1.75rem 0;
+  background: #fafafa;
+  border-top: 1px solid #eee;
+}
+
+.home-rec--personal {
+  background: linear-gradient(180deg, #fff 0%, #fffef8 100%);
+}
+
+.home-rec__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.home-rec__accent {
+  display: inline-block;
+  width: 4px;
+  height: 1.3em;
+  background: var(--bd-yellow);
+  border-radius: 1px;
+}
+
+.home-rec__sub {
+  margin: 0 0 1rem;
+  font-size: 0.88rem;
+  color: #555;
+}
+
+.home-rec__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 1rem;
+}

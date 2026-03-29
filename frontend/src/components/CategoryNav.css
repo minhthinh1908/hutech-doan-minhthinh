@@ -1,0 +1,418 @@
+.cat-nav {
+  background: var(--bd-black);
+  color: var(--bd-white);
+}
+
+.cat-nav__inner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 1rem;
+  min-height: 48px;
+}
+
+.cat-nav__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: var(--bd-sidebar-width, 220px);
+  min-width: var(--bd-sidebar-width, 220px);
+  flex-shrink: 0;
+  background: var(--bd-yellow);
+  color: var(--bd-black);
+  border: none;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 0.8125rem;
+  letter-spacing: var(--bd-tracking-label, 0.06em);
+  padding: 0.55rem 0.7rem;
+  border-radius: 3px;
+  text-transform: uppercase;
+  line-height: 1.25;
+  -webkit-font-smoothing: antialiased;
+}
+
+.cat-nav__trigger:hover {
+  filter: brightness(1.05);
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.15),
+    0 0 16px rgba(255, 234, 0, 0.65),
+    0 0 28px rgba(255, 100, 0, 0.35);
+}
+
+.cat-nav__trigger:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Viền LED chạy quanh cả khu 5 thương hiệu */
+.cat-nav__brands-led-wrap {
+  flex: 1;
+  min-width: 0;
+  padding: 3px;
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    #ff0080,
+    #00e5ff,
+    #ffea00,
+    #b400ff,
+    #00ff88,
+    #ff0080
+  );
+  background-size: 400% 100%;
+  animation: cat-nav-brands-strip-flow 5s linear infinite;
+  box-shadow:
+    0 0 18px rgba(255, 200, 0, 0.35),
+    0 0 28px rgba(0, 229, 255, 0.2);
+}
+
+@keyframes cat-nav-brands-strip-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 400% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cat-nav__brands-led-wrap {
+    animation: none;
+    background: linear-gradient(135deg, #ffcc00, #00c8ff, #ff4080);
+  }
+}
+
+.cat-nav__brands {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 0.4rem 0.55rem 0.45rem;
+  border-radius: 9px;
+  background: linear-gradient(180deg, #0f0f0f 0%, #080808 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cat-nav__brands-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: #ffdd33;
+  white-space: nowrap;
+  line-height: 1.2;
+  -webkit-font-smoothing: antialiased;
+  text-shadow:
+    0 0 6px rgba(255, 220, 60, 1),
+    0 0 14px rgba(255, 160, 0, 0.85),
+    0 0 22px rgba(255, 80, 0, 0.55),
+    0 0 32px rgba(255, 0, 128, 0.25),
+    0 1px 0 rgba(0, 0, 0, 0.9);
+  animation: cat-nav-label-led 2.8s ease-in-out infinite;
+}
+
+@keyframes cat-nav-label-led {
+  0%,
+  100% {
+    color: #ffdd33;
+    text-shadow:
+      0 0 6px rgba(255, 220, 60, 1),
+      0 0 14px rgba(255, 160, 0, 0.85),
+      0 0 24px rgba(0, 229, 255, 0.35);
+  }
+  50% {
+    color: #fff176;
+    text-shadow:
+      0 0 8px rgba(255, 255, 200, 1),
+      0 0 18px rgba(0, 255, 200, 0.55),
+      0 0 28px rgba(255, 0, 200, 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cat-nav__brands-label {
+    animation: none;
+    color: var(--bd-yellow);
+    text-shadow: 0 0 10px rgba(255, 204, 0, 0.6);
+  }
+}
+
+.cat-nav__brand-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.cat-nav__brand {
+  display: block;
+  padding: 0;
+  min-width: 68px;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  font: inherit;
+}
+
+/* Viền LED chạy màu quanh thương hiệu */
+.cat-nav__brand--led {
+  border-radius: 6px;
+  padding: 2px;
+  background: linear-gradient(
+    90deg,
+    #ff0080,
+    #00e5ff,
+    #ffea00,
+    #b400ff,
+    #00ff88,
+    #ff0080
+  );
+  background-size: 400% 100%;
+  animation: cat-nav-led-flow 4.5s linear infinite;
+  box-shadow:
+    0 0 10px rgba(0, 229, 255, 0.35),
+    0 0 18px rgba(255, 0, 128, 0.2);
+}
+
+@keyframes cat-nav-led-flow {
+  0% {
+    background-position: 0% 50%;
+    filter: hue-rotate(0deg) brightness(1.05);
+  }
+  50% {
+    filter: hue-rotate(30deg) brightness(1.12);
+  }
+  100% {
+    background-position: 400% 50%;
+    filter: hue-rotate(0deg) brightness(1.05);
+  }
+}
+
+.cat-nav__brand-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: linear-gradient(180deg, #1c1c1c 0%, #0d0d0d 100%);
+  color: var(--bd-white);
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  min-height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cat-nav__brand--led:hover .cat-nav__brand-inner {
+  color: var(--bd-yellow);
+}
+
+.cat-nav__brand--led:hover {
+  animation-duration: 2.2s;
+  box-shadow:
+    0 0 14px rgba(255, 234, 0, 0.45),
+    0 0 24px rgba(0, 229, 255, 0.35);
+}
+
+/* Trang chủ ?brand= — viền vàng ô đang chọn (giống mẫu 5 logo) */
+.cat-nav__brand--active.cat-nav__brand--led {
+  animation-duration: 2.2s;
+}
+
+.cat-nav__brand-inner--active {
+  outline: 2px solid #e6c200;
+  outline-offset: 1px;
+  box-shadow:
+    0 0 0 1px rgba(255, 204, 0, 0.55),
+    inset 0 0 0 1px rgba(255, 221, 51, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cat-nav__brand--led {
+    animation: none;
+    background: linear-gradient(90deg, #ffcc00, #00c8ff);
+  }
+}
+
+.cat-nav__brand-abbr {
+  font-weight: 800;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+.cat-nav__brand-name {
+  font-weight: 600;
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.92;
+  white-space: nowrap;
+  line-height: 1.15;
+}
+
+@media (max-width: 640px) {
+  .cat-nav__trigger {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* Mega menu */
+.cat-nav__mega {
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  align-items: stretch;
+}
+
+.cat-nav__dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 400;
+  display: flex;
+  align-items: stretch;
+  width: min(1180px, calc(100vw - 2rem));
+  max-height: min(88vh, 680px);
+  overflow: hidden;
+  background: #fff;
+  color: #111;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.22);
+  border-radius: 0 0 6px 6px;
+  border: 1px solid #e8e8e8;
+  border-top: none;
+}
+
+.cat-nav__dropdown--solo {
+  padding: 1.25rem 1.5rem;
+  min-width: 280px;
+}
+
+.cat-nav__mega-sidebar {
+  flex: 0 0 252px;
+  background: #fff;
+  border-right: 1px solid #e5e5e5;
+  overflow-y: auto;
+  border-top: 4px solid #d4af37;
+}
+
+.cat-nav__mega-parent {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 0.7rem 0.75rem 0.55rem;
+  border: none;
+  border-bottom: 1px solid #e8e8e8;
+  background: #fff;
+  font: inherit;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  color: #111;
+  line-height: 1.35;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.cat-nav__mega-parent:hover {
+  background: #fafafa;
+}
+
+.cat-nav__mega-parent--active {
+  color: #c9a000;
+  background: #fffef6;
+}
+
+.cat-nav__mega-parent--active .cat-nav__mega-dash {
+  opacity: 1;
+}
+
+.cat-nav__mega-dash {
+  flex-shrink: 0;
+  width: 12px;
+  height: 3px;
+  margin-right: 8px;
+  background: currentColor;
+  opacity: 0;
+  border-radius: 1px;
+}
+
+.cat-nav__mega-panel {
+  flex: 1;
+  min-width: 0;
+  padding: 1.1rem 1.15rem 1.35rem;
+  background: #fff;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  border-top: 3px solid #111;
+}
+
+.cat-nav__mega-cols {
+  display: grid;
+  width: 100%;
+  min-width: 760px;
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  gap: 0.45rem 1.15rem;
+  align-items: start;
+}
+
+@media (max-width: 560px) {
+  .cat-nav__dropdown {
+    flex-direction: column;
+    width: min(100vw - 1rem, 420px);
+    max-height: 80vh;
+  }
+
+  .cat-nav__mega-sidebar {
+    flex: none;
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #eee;
+    max-height: 40vh;
+    overflow: auto;
+  }
+
+  .cat-nav__mega-cols {
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.cat-nav__mega-col {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cat-nav__mega-col li {
+  margin-bottom: 0.4rem;
+}
+
+.cat-nav__mega-link {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #111;
+  text-decoration: none;
+  line-height: 1.45;
+  padding: 0.18rem 0;
+}
+
+.cat-nav__mega-link:hover {
+  color: #000;
+  text-decoration: underline;
+}
+
+.cat-nav__mega-empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+}
