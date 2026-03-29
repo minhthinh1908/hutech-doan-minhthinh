@@ -128,6 +128,15 @@ async function preview(req, res) {
         return res.status(400).json({ message: "Giỏ hàng trống" });
     }
 
+    for (const item of cart.cart_items) {
+        if (item.product && item.product.status !== "active") {
+            return res.status(400).json({
+                message:
+                    "Giỏ hàng có sản phẩm đã ngừng kinh doanh — vui lòng xóa hoặc giảm số lượng trước khi xem trước mã"
+            });
+        }
+    }
+
     const voucher = await prisma.voucher.findUnique({ where: { code } });
     let usedByUserCount = 0;
     if (voucher?.per_user_limit != null) {

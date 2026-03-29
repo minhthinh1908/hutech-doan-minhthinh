@@ -8,6 +8,67 @@ function clip(s, n = 90) {
   return t.length <= n ? t : `${t.slice(0, n)}…`;
 }
 
+function RefundAmountEditor({ refundId, initialAmount, orderTotal, onSaved, setErr, setMsg }) {
+  const [val, setVal] = useState(String(initialAmount ?? ""));
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    setVal(String(initialAmount ?? ""));
+  }, [refundId, initialAmount]);
+
+  async function save() {
+    const n = parseMoneyInput(val);
+    if (Number.isNaN(n) || n < 0) {
+      setErr("Nhập số tiền hợp lệ (≥ 0).");
+      return;
+    }
+    const cap = orderTotal != null ? Number(orderTotal) : null;
+    if (cap != null && n > cap) {
+      setErr(`Không vượt tổng đơn (${money(cap)}đ).`);
+      return;
+    }
+    setSaving(true);
+    setErr("");
+    setMsg("");
+    try {
+      await apiPatch(`/admin/refund-requests/${refundId}`, { refund_amount: n });
+      setMsg("Đã cập nhật số tiền hoàn.");
+      await onSaved();
+    } catch (e) {
+      setErr(e.message || "Không lưu được.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div style={{ minWidth: 120, maxWidth: 160 }}>
+      <input
+        type="text"
+        inputMode="decimal"
+        className="admin-refund-note-ta"
+        style={{ minHeight: "auto", padding: "0.35rem 0.5rem" }}
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        aria-label={`Số tiền hoàn #${refundId}`}
+      />
+      {orderTotal != null ? (
+        <span className="admin-page__muted" style={{ display: "block", fontSize: "0.68rem", marginTop: 2 }}>
+          Tối đa đơn: {money(orderTotal)}đ
+        </span>
+      ) : null}
+      <button
+        type="button"
+        className="admin-btn"
+        style={{ marginTop: 6, fontSize: "0.75rem", padding: "0.3rem 0.5rem" }}
+        disabled={saving}
+        onClick={save}
+      >
+        {saving ? "Đang lưu…" : "Lưu số tiền"}
+      </button>
+    </div>
+  );
+}
+
 function ShopNoteEditor({ refundId, initial, onSaved, setErr, setMsg }) {
   const [val, setVal] = useState(initial || "");
   const [saving, setSaving] = useState(false);
@@ -55,6 +116,19 @@ function ShopNoteEditor({ refundId, initial, onSaved, setErr, setMsg }) {
 
 function money(n) {
   return Number(n || 0).toLocaleString("vi-VN");
+}
+
+/** Chuỗi nhập: 1500000, 1.500.000, 1500.5 (thập phân), 1.500.000,5 */
+function parseMoneyInput(val) {
+  const s = String(val).trim().replace(/\s/g, "");
+  if (!s) return NaN;
+  if (s.includes(",")) {
+    return Number(s.replace(/\./g, "").replace(",", "."));
+  }
+  if (/^\d+\.\d{1,2}$/.test(s)) {
+    return Number(s);
+  }
+  return Number(s.replace(/\./g, ""));
 }
 
 function fmtDate(iso) {
@@ -191,7 +265,7 @@ export default function AdminRefunds() {
                 <th>Mã đơn</th>
                 <th>Khách</th>
                 <th>Email</th>
-                <th>Số tiền hoàn</th>
+                <th>Số tiền hoàn (admin)</th>
                 <th>Lý do</th>
                 <th>Ghi chú khách</th>
                 <th>Phản hồi shop</th>
@@ -224,7 +298,16 @@ export default function AdminRefunds() {
                       </td>
                       <td>{r.user?.full_name || "—"}</td>
                       <td style={{ wordBreak: "break-all", fontSize: "0.8rem" }}>{r.user?.email || "—"}</td>
-                      <td>{money(r.refund_amount)}đ</td>
+                      <td style={{ verticalAlign: "top" }}>
+                        <RefundAmountEditor
+                          refundId={r.refund_request_id}
+                          initialAmount={r.refund_amount}
+                          orderTotal={r.order?.total_amount}
+                          onSaved={load}
+                          setErr={setErr}
+                          setMsg={setMsg}
+                        />
+                      </td>
                       <td style={{ maxWidth: 200, fontSize: "0.8rem" }} title={r.reason}>
                         {r.reason && r.reason.length > 120 ? `${r.reason.slice(0, 120)}…` : r.reason || "—"}
                       </td>

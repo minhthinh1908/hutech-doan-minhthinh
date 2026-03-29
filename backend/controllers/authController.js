@@ -107,6 +107,7 @@ const login = async (req, res) => {
                 full_name: user.full_name,
                 email: user.email,
                 phone: user.phone,
+                address: user.address,
                 role_name: user.role.role_name
             }
         });
@@ -216,6 +217,7 @@ const profile = async (req, res) => {
             full_name: user.full_name,
             email: user.email,
             phone: user.phone,
+            address: user.address,
             status: user.status,
             created_at: user.created_at,
             role_name: user.role.role_name
@@ -226,21 +228,40 @@ const profile = async (req, res) => {
     }
 };
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const updateProfile = async (req, res) => {
     try {
         const uid = BigInt(req.user.user_id);
-        const { full_name, phone } = req.body;
+        const { full_name, phone, email, address } = req.body;
         const data = {};
         if (full_name !== undefined) {
             const fn = String(full_name).trim();
-            if (!fn) return res.status(400).json({ message: "full_name cannot be empty" });
+            if (!fn) return res.status(400).json({ message: "Họ tên không được để trống" });
             data.full_name = fn;
         }
         if (phone !== undefined) {
             data.phone = phone === null || phone === "" ? null : String(phone).trim();
         }
+        if (address !== undefined) {
+            data.address = address === null || address === "" ? null : String(address).trim();
+        }
+        if (email !== undefined) {
+            const em = String(email).trim().toLowerCase();
+            if (!em) return res.status(400).json({ message: "Email không được để trống" });
+            if (!EMAIL_RE.test(em)) {
+                return res.status(400).json({ message: "Email không hợp lệ" });
+            }
+            const taken = await prisma.user.findFirst({
+                where: { email: em, NOT: { user_id: uid } }
+            });
+            if (taken) {
+                return res.status(409).json({ message: "Email đã được tài khoản khác sử dụng" });
+            }
+            data.email = em;
+        }
         if (Object.keys(data).length === 0) {
-            return res.status(400).json({ message: "No fields to update" });
+            return res.status(400).json({ message: "Không có trường nào để cập nhật" });
         }
 
         const user = await prisma.user.update({
@@ -254,12 +275,16 @@ const updateProfile = async (req, res) => {
             full_name: user.full_name,
             email: user.email,
             phone: user.phone,
+            address: user.address,
             status: user.status,
             created_at: user.created_at,
             role_name: user.role.role_name
         });
     } catch (error) {
         console.error("Update profile error:", error);
+        if (error.code === "P2002") {
+            return res.status(409).json({ message: "Email đã được sử dụng" });
+        }
         return res.status(500).json({ message: "Internal server error" });
     }
 };

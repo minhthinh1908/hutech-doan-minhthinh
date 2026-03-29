@@ -120,34 +120,11 @@ export default function AdminReviews() {
 
   return (
     <div className="admin-page">
-      <h1>Đánh giá</h1>
+      <h1>Đánh giá sản phẩm</h1>
       <p className="admin-page__muted">
-        Xem đánh giá từ khách, <strong>duyệt</strong> hoặc <strong>ẩn</strong> nội dung không phù hợp, xóa đánh giá hoặc
-        bình luận. Khách chưa đăng nhập chỉ thấy đánh giá đã duyệt trên trang sản phẩm.
+        Xem đánh giá từ khách, <strong>duyệt</strong> hoặc <strong>ẩn</strong> (từ chối hiển thị công khai),{" "}
+        <strong>xóa</strong> đánh giá hoặc bình luận. Trên trang sản phẩm, khách chỉ thấy nội dung đã duyệt.
       </p>
-
-      <div style={{ marginBottom: "1rem", display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center" }}>
-        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: 0 }}>
-          <span className="admin-page__muted" style={{ fontSize: "0.9rem" }}>
-            Lọc:
-          </span>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="admin-select--order-status"
-            style={{ minWidth: "12rem" }}
-          >
-            {FILTER_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <span className="admin-page__muted" style={{ fontSize: "0.85rem" }}>
-          Hiển thị {filteredRows.length} / {rows.length} đánh giá
-        </span>
-      </div>
 
       {err ? (
         <p className="admin-msg admin-msg--err" role="alert">
@@ -160,11 +137,40 @@ export default function AdminReviews() {
         </p>
       ) : null}
 
-      {loading ? (
-        <p>Đang tải…</p>
-      ) : (
-        <div className="admin-table-wrap">
-          <table className="admin-table">
+      <div className="admin-page__panel">
+        {loading ? (
+          <p className="admin-page__muted" style={{ margin: 0 }}>
+            Đang tải…
+          </p>
+        ) : (
+          <>
+            <div
+              style={{ marginBottom: "1rem", display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center" }}
+            >
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: 0 }}>
+                <span className="admin-page__muted" style={{ fontSize: "0.9rem" }}>
+                  Lọc:
+                </span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="admin-select--order-status"
+                  style={{ minWidth: "12rem" }}
+                >
+                  {FILTER_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <span className="admin-page__muted" style={{ fontSize: "0.85rem" }}>
+                Hiển thị {filteredRows.length} / {rows.length} đánh giá
+              </span>
+            </div>
+
+            <div className="admin-table-wrap">
+              <table className="admin-table">
             <thead>
               <tr>
                 <th>ID</th>
@@ -327,8 +333,10 @@ export default function AdminReviews() {
               )}
             </tbody>
           </table>
-        </div>
-      )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

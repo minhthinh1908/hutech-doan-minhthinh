@@ -102,6 +102,15 @@ flowchart LR
 - Bảo hành, yêu cầu sửa chữa, yêu cầu hoàn tiền  
 - Tài khoản cá nhân; đăng nhập / đăng ký  
 
+### 4. Áp dụng voucher (Buyer ↔ Admin)
+
+| Phần | Nội dung |
+|------|----------|
+| **Buyer** | Trang **Giỏ hàng**: nhập mã → **Áp dụng / xem trước** để xem tạm tính, **số tiền giảm**, tổng thanh toán (`POST /api/vouchers/preview`). **Đặt hàng** gửi kèm cùng mã (`POST /api/orders`, body `voucher_code`) — logic kiểm tra giống bước xem trước. |
+| **Admin** | **Khuyến mãi / Voucher** (`/admin/voucher`): tạo/sửa mã do admin quản lý — **loại giảm** (% hoặc số tiền cố định), **giá trị**, **điều kiện** (đơn tối thiểu, danh mục áp dụng), **thời gian** hiệu lực, giới hạn lượt; **theo dõi số lần sử dụng** qua cột *Đã dùng / giới hạn* (`usage_count` / `usage_limit`) và phần tổng hợp trong **Báo cáo**. |
+
+Luồng kiểm tra mã: `backend/services/voucherValidation.js` — đơn đặt ghi `OrderVoucher` và tăng `usage_count` trong `orderController.checkout`.
+
 ### Quản trị viên (`/admin`, role `admin`)
 
 - Dashboard, sản phẩm, danh mục, thương hiệu, voucher  
@@ -111,13 +120,42 @@ flowchart LR
 
 ---
 
+## 3. Đặt hàng & xử lý thanh toán (Place Order + Process Payment)
+
+### Khách (Buyer)
+
+1. **Giỏ hàng** — Thêm sản phẩm, chỉnh số lượng; tùy chọn nhập **mã voucher** và «Áp dụng / xem trước» (`POST /api/vouchers/preview`).
+2. **Địa chỉ giao hàng** — Nhập địa chỉ (bắt buộc) trước khi đặt; có thể lưu địa chỉ mặc định ở **Hồ sơ** (`PATCH /api/auth/me`) để form gợi ý sẵn.
+3. **Đặt hàng** — `POST /api/orders` với `shipping_address` (+ tùy chọn `voucher_code`): tạo đơn `pending`, `payment_status: unpaid`, lưu **snapshot** địa chỉ trên bảng `orders`, xóa dòng giỏ.
+4. **Thanh toán** — Trang chi tiết đơn (`/don-hang/:id`): chọn **COD**, **chuyển khoản**, hoặc **cổng thanh toán** (demo) rồi `POST /api/orders/:id/payments` — tạo bản ghi `payments` (chờ xác nhận / demo gateway). Admin cập nhật `payment_status` trên đơn hoặc từng dòng thanh toán khi đối soát.
+
+```mermaid
+flowchart LR
+  A[Giỏ hàng] --> B[Địa chỉ + voucher]
+  B --> C[POST /orders]
+  C --> D[Chi tiết đơn]
+  D --> E[POST /orders/:id/payments]
+  E --> F[Admin xác nhận TT / trạng thái đơn]
+```
+
+### Quản trị (Admin)
+
+- **Danh sách & lọc đơn** — `GET /api/admin/orders` (trạng thái, mã đơn).
+- **Chi tiết đơn** — `GET /api/admin/orders/:order_id`: khách, **địa chỉ giao**, dòng hàng, voucher, **lịch sử thanh toán** (`payments`: phương thức, trạng thái, mã giao dịch, thời điểm nếu có).
+- **Cập nhật trạng thái đơn** — `PATCH /api/admin/orders/:order_id` với `order_status`: chuỗi khuyến nghị **pending → confirmed → shipping → completed** (hoặc `cancelled`). Có thể đồng bộ `payment_status` khi đối soát.
+- **Cập nhật thanh toán** — `PATCH /api/admin/payments/:payment_id` (ví dụ ghi `paid_at`, `transaction_code`).
+
+> **Tích hợp cổng thực (VNPay, MoMo, …):** hiện tại là luồng demo; production cần redirect URL, webhook IPN và cập nhật trạng thái từ callback.
+
+---
+
 ## Cơ sở dữ liệu (tóm tắt)
 
 Schema định nghĩa trong `backend/prisma/schema.prisma`, gồm các nhóm chính:
 
 - **Người dùng & phân quyền:** `Role`, `User`, `RefreshToken`  
 - **Danh mục & sản phẩm:** `Category` (cây phân cấp), `Brand`, `CategoryBrand`, `Product` (giá, flash sale, nhãn hot/mới/bestseller, …)  
-- **Mua hàng:** `Cart`, `CartItem`, `Order`, `OrderItem`, `Payment`, `Voucher`, `OrderVoucher`  
+- **Mua hàng:** `Cart`, `CartItem`, `Order` (có `shipping_address` snapshot lúc đặt), `OrderItem`, `Payment`, `Voucher`, `OrderVoucher`  
 - **Sau bán:** `Review`, `Warranty`, `RepairRequest`, `RefundRequest`  
 - **Giao diện site:** `SiteFooter` (một bản ghi cấu hình chân trang)  
 

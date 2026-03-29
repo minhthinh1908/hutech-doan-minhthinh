@@ -265,7 +265,7 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "body": { "mode": "raw", "raw": "{\n  \"voucher_code\": \"\"\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"shipping_address\": \"73 Đường Đào Tấn, Quy Nhơn, Bình Định\",\n  \"voucher_code\": \"\"\n}" },
             "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] }
           }
         },
@@ -372,11 +372,38 @@
           }
         },
         {
+          "name": "GET /api/repair-requests/detail/:repair_request_id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/repair-requests/detail/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "repair-requests", "detail", "1"]
+            }
+          }
+        },
+        {
+          "name": "POST /api/repair-requests/upload (multipart file)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": "" }]
+            },
+            "url": { "raw": "{{baseUrl}}/api/repair-requests/upload", "host": ["{{baseUrl}}"], "path": ["api", "repair-requests", "upload"] }
+          }
+        },
+        {
           "name": "POST /api/repair-requests/warranties/:warranty_id",
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "body": { "mode": "raw", "raw": "{\n  \"issue_description\": \"Device not powering on\"\n}" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"issue_description\": \"Máy không lên nguồn\",\n  \"attachment_urls\": [\"/uploads/example.jpg\"]\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/api/repair-requests/warranties/1",
               "host": ["{{baseUrl}}"],
@@ -397,7 +424,7 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Wrong item\",\n  \"buyer_note\": \"Ghi chú thêm (tuỳ chọn)\",\n  \"refund_amount\": 100000\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Sản phẩm lỗi / không đúng mô tả\",\n  \"buyer_note\": \"Ghi chú thêm (tuỳ chọn) — số tiền hoàn do admin đặt sau\"\n}" },
             "url": {
               "raw": "{{baseUrl}}/api/refund-requests/orders/1",
               "host": ["{{baseUrl}}"],
@@ -591,11 +618,22 @@
           }
         },
         {
+          "name": "GET /api/admin/repair-requests/:repair_request_id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/repair-requests/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "repair-requests", "1"] }
+          }
+        },
+        {
           "name": "PATCH /api/admin/repair-requests/:repair_request_id",
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "body": { "mode": "raw", "raw": "{\n  \"repair_status\": \"in_progress\"\n}" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repair_status\": \"checking\",\n  \"admin_notes\": \"Ghi chú nội bộ\",\n  \"resolution_notes\": \"Phản hồi cho khách\"\n}"
+            },
             "url": { "raw": "{{baseUrl}}/api/admin/repair-requests/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "repair-requests", "1"] }
           }
         },
@@ -612,7 +650,7 @@
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "body": { "mode": "raw", "raw": "{\n  \"refund_status\": \"approved\",\n  \"admin_note\": \"Phản hồi cho khách (ghi chú shop)\"\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"refund_status\": \"approved\",\n  \"refund_amount\": 150000,\n  \"admin_note\": \"Phản hồi cho khách (ghi chú shop)\"\n}" },
             "url": { "raw": "{{baseUrl}}/api/admin/refund-requests/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "refund-requests", "1"] }
           }
         },

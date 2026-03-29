@@ -78,6 +78,9 @@ async function createForWarranty(req, res) {
         where: { warranty_id, user_id }
     });
     if (!warranty) return res.status(404).json({ message: "Không tìm thấy phiếu bảo hành." });
+    if (warranty.status === "pending" || !warranty.end_date) {
+        return res.status(400).json({ message: "Vui lòng kích hoạt bảo hành (sau khi nhận hàng) trước khi gửi yêu cầu sửa chữa." });
+    }
     if (warranty.status !== "active") {
         return res.status(400).json({ message: "Phiếu bảo hành không còn hiệu lực (đã hết hạn hoặc bị hủy)." });
     }

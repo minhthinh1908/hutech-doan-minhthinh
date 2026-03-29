@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api/client.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import BuyerSidebar from "../components/BuyerSidebar.jsx";
 import "./BuyerPages.css";
 
@@ -10,6 +11,7 @@ function money(n) {
 
 export default function CartPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -38,7 +40,15 @@ export default function CartPage() {
   }, [load]);
 
   async function setQty(cartItemId, quantity) {
+    const line = items.find((x) => String(x.cart_item_id) === String(cartItemId));
+    const p = line?.product;
+    const inactive = p && p.status !== "active";
     const q = Math.max(1, quantity);
+    if (inactive && q > (line?.quantity ?? 0)) {
+      setErr("Không thể tăng số lượng sản phẩm đã ngừng kinh doanh — chỉ có thể giảm hoặc xóa.");
+      return;
+    }
+    setErr("");
     try {
       await apiPatch(`/cart/items/${cartItemId}`, { quantity: q });
       window.dispatchEvent(new Event("bd-cart-updated"));
@@ -79,9 +89,20 @@ export default function CartPage() {
 
   async function checkout() {
     setCheckoutErr("");
+    if (items.some((i) => i.product && i.product.status !== "active")) {
+      setCheckoutErr(
+        "Giỏ hàng có sản phẩm đã ngừng kinh doanh — vui lòng xóa các dòng đó (hoặc giảm số lượng) rồi đặt hàng lại."
+      );
+      return;
+    }
+    const addr = shippingAddress.trim();
+    if (!addr) {
+      setCheckoutErr("Vui lòng nhập địa chỉ giao hàng.");
+      return;
+    }
     setCheckingOut(true);
     try {
-      const body = {};
+      const body = { shipping_address: addr };
       if (voucherCode.trim()) body.voucher_code = voucherCode.trim();
       const order = await apiPost("/orders", body, { auth: true });
       window.dispatchEvent(new Event("bd-cart-updated"));
@@ -93,6 +114,7 @@ export default function CartPage() {
     }
   }
 
+  const hasInactiveLine = items.some((i) => i.product && i.product.status !== "active");
   const subtotal = items.reduce((s, i) => s + Number(i.unit_price) * i.quantity, 0);
 
   return (
@@ -100,7 +122,11 @@ export default function CartPage() {
       <div className="buyer-page__hero">
         <div className="container">
           <h1 className="buyer-page__title">Giỏ hàng</h1>
-          <p className="buyer-page__sub">Thêm, sửa số lượng và đặt hàng (áp dụng mã giảm giá nếu có).</p>
+          <p className="buyer-page__sub">
+            Thêm / sửa số lượng / xóa dòng. Sản phẩm, danh mục, thương hiệu lấy từ Admin — nếu admin tắt sản phẩm, không thể
+            thêm mới; dòng cũ trong giỏ cần xóa hoặc giảm trước khi đặt hàng. Mã voucher: dùng «Áp dụng / xem trước» để kiểm
+            tra giảm giá.
+          </p>
         </div>
       </div>
       <div className="container buyer-shell">
@@ -121,8 +147,13 @@ export default function CartPage() {
             const p = line.product;
             const name = p?.product_name || "Sản phẩm";
             const img = p?.image_url || p?.thumbnail_url || null;
+            const inactive = p && p.status !== "active";
+            const catBrand = [p?.category?.category_name, p?.brand?.brand_name].filter(Boolean).join(" · ");
             return (
-              <div key={line.cart_item_id} className="buyer-cart-row">
+              <div
+                key={line.cart_item_id}
+                className={`buyer-cart-row${inactive ? " buyer-cart-row--inactive" : ""}`}
+              >
                 {img ? (
                   <img className="buyer-cart-thumb" src={img} alt="" />
                 ) : (
@@ -132,14 +163,29 @@ export default function CartPage() {
                   <Link to={`/san-pham/${line.product_id}`}>
                     <strong>{name}</strong>
                   </Link>
+                  {catBrand ? (
+                    <div className="buyer-muted" style={{ fontSize: "0.82rem" }}>
+                      {catBrand}
+                    </div>
+                  ) : null}
                   <div className="buyer-muted">{money(line.unit_price)}đ / sản phẩm</div>
+                  {inactive ? (
+                    <p className="buyer-cart-inactive-msg" role="status">
+                      Ngừng kinh doanh — không thể tăng số lượng; vui lòng giảm hoặc xóa.
+                    </p>
+                  ) : null}
                 </div>
                 <div className="buyer-qty">
                   <button type="button" aria-label="Giảm" onClick={() => setQty(line.cart_item_id, line.quantity - 1)}>
                     −
                   </button>
                   <span>{line.quantity}</span>
-                  <button type="button" aria-label="Tăng" onClick={() => setQty(line.cart_item_id, line.quantity + 1)}>
+                  <button
+                    type="button"
+                    aria-label="Tăng"
+                    disabled={inactive}
+                    onClick={() => setQty(line.cart_item_id, line.quantity + 1)}
+                  >
                     +
                   </button>
                 </div>
@@ -220,10 +266,27 @@ export default function CartPage() {
                   {checkoutErr}
                 </p>
               ) : null}
+              <label className="buyer-form__field" style={{ maxWidth: "100%" }}>
+                <span className="buyer-form__label">Địa chỉ giao hàng *</span>
+                <textarea
+                  className="buyer-form__input"
+                  rows={3}
+                  value={shippingAddress}
+                  onChange={(e) => setShippingAddress(e.target.value)}
+                  placeholder="Số nhà, đường, phường/xã, tỉnh/thành… (lưu trong hồ sơ để gợi ý lần sau)"
+                  required
+                />
+              </label>
               <p className="buyer-muted" style={{ marginBottom: "0.75rem" }}>
-                Đặt hàng sẽ áp dụng cùng mã đã nhập (nếu hợp lệ) và tạo đơn — logic giống bước «Kiểm tra mã» phía trên.
+                Đặt hàng sẽ lưu địa chỉ trên đơn, áp dụng mã voucher (nếu hợp lệ), rồi chuyển tới trang đơn để chọn phương thức
+                thanh toán (COD / chuyển khoản / cổng — demo).
               </p>
-              <button type="button" className="buyer-form__btn" disabled={checkingOut} onClick={checkout}>
+              <button
+                type="button"
+                className="buyer-form__btn"
+                disabled={checkingOut || hasInactiveLine}
+                onClick={checkout}
+              >
                 {checkingOut ? "Đang xử lý…" : "Đặt hàng & thanh toán"}
               </button>
             </div>

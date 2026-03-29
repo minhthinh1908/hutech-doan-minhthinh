@@ -295,6 +295,14 @@ export default function AdminOrders() {
                       ) : null}
                     </p>
                   </div>
+                  {detail.shipping_address ? (
+                    <div style={{ gridColumn: "1 / -1" }}>
+                      <strong>Địa chỉ giao hàng</strong>
+                      <p className="admin-page__muted" style={{ whiteSpace: "pre-wrap", margin: "0.35rem 0 0" }}>
+                        {detail.shipping_address}
+                      </p>
+                    </div>
+                  ) : null}
                   <div>
                     <strong>Trạng thái</strong>
                     <p>
@@ -334,12 +342,13 @@ export default function AdminOrders() {
 
                 {detail.payments?.length ? (
                   <div className="admin-order-detail__block">
-                    <strong>Thanh toán</strong>
+                    <strong>Lịch sử thanh toán</strong>
                     <ul className="admin-order-detail__list">
                       {detail.payments.map((p) => (
                         <li key={p.payment_id}>
-                          {p.payment_method} — {payLabel(p.payment_status)}
-                          {p.transaction_code ? ` — ${p.transaction_code}` : ""}
+                          #{p.payment_id} — {p.payment_method} — {payLabel(p.payment_status)}
+                          {p.transaction_code ? ` — Mã GD: ${p.transaction_code}` : ""}
+                          {p.paid_at ? ` — ${new Date(p.paid_at).toLocaleString("vi-VN")}` : ""}
                         </li>
                       ))}
                     </ul>

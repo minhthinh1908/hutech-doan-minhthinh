@@ -21,6 +21,7 @@ export function AuthProvider({ children }) {
         full_name: me.full_name,
         email: me.email,
         phone: me.phone ?? "",
+        address: me.address ?? "",
         role_name: me.role_name
       });
     } catch {
@@ -43,6 +44,7 @@ export function AuthProvider({ children }) {
       full_name: data.user?.full_name,
       email: data.user?.email,
       phone: data.user?.phone ?? "",
+      address: data.user?.address ?? "",
       role_name: data.user?.role_name
     });
     return data;
@@ -59,6 +61,7 @@ export function AuthProvider({ children }) {
       full_name: me.full_name,
       email: me.email,
       phone: me.phone ?? "",
+      address: me.address ?? "",
       role_name: me.role_name
     });
     return me;

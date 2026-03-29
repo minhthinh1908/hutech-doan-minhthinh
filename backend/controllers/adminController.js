@@ -25,6 +25,7 @@ const REPAIR_STATUSES = [
     "pending",
     "received",
     "checking",
+    "repairing",
     "in_progress",
     "waiting_parts",
     "repaired",
@@ -74,9 +75,9 @@ function serializeAdminWarrantyItem(w) {
     const user = w.user;
     const repairs = Array.isArray(w.repair_requests) ? w.repair_requests : [];
     const latest = repairs[0];
-    const dr = daysRemainingCalendar(w.end_date);
-    const expiredByEndDate = dr < 0;
-    const isExpired = expiredByEndDate || w.status === "expired";
+    const dr = w.end_date != null ? daysRemainingCalendar(w.end_date) : null;
+    const expiredByEndDate = dr != null && dr < 0;
+    const isExpired = w.status === "expired" || w.status === "void" || expiredByEndDate;
     const warrantyId = asId(w.warranty_id);
 
     return {
@@ -84,6 +85,7 @@ function serializeAdminWarrantyItem(w) {
         order_item_id: asId(w.order_item_id),
         order_id: orderId,
         order_code: orderId != null ? `DH-${String(orderId).padStart(6, "0")}` : undefined,
+        order_status: order?.order_status ?? undefined,
 
         user_id: asId(w.user_id),
         user_name: user?.full_name ?? "",
@@ -109,7 +111,8 @@ function serializeAdminWarrantyItem(w) {
         is_expired: isExpired,
         days_remaining: dr,
 
-        activated_at: toIso(w.start_date),
+        activated_at: toIso(w.activated_at) ?? toIso(w.start_date),
+        warranty_months_snapshot: w.warranty_months_snapshot ?? 0,
         created_at: toIso(w.created_at),
         updated_at: toIso(w.updated_at)
     };
@@ -151,6 +154,7 @@ async function listUsers(req, res) {
             full_name: true,
             email: true,
             phone: true,
+            address: true,
             status: true,
             created_at: true,
             role_id: true,
@@ -164,6 +168,7 @@ async function listUsers(req, res) {
             full_name: u.full_name,
             email: u.email,
             phone: u.phone,
+            address: u.address,
             status: u.status,
             created_at: u.created_at,
             role_id: asId(u.role_id),
@@ -181,6 +186,7 @@ async function getUser(req, res) {
             full_name: true,
             email: true,
             phone: true,
+            address: true,
             status: true,
             created_at: true,
             role_id: true,
@@ -194,12 +200,162 @@ async function getUser(req, res) {
         full_name: u.full_name,
         email: u.email,
         phone: u.phone,
+        address: u.address,
         status: u.status,
         created_at: u.created_at,
         role_id: asId(u.role_id),
         role_name: u.role?.role_name,
         order_count: u._count.orders
     });
+}
+
+/** Gộp đơn hàng, đánh giá, bảo hành, sửa chữa, hoàn tiền — sắp xếp theo thời gian (mới nhất trước). */
+async function getUserActivity(req, res) {
+    const user_id = BigInt(req.params.user_id);
+    const exists = await prisma.user.findUnique({ where: { user_id }, select: { user_id: true } });
+    if (!exists) return res.status(404).json({ message: "User not found" });
+
+    const [orders, reviews, warranties, repairs, refunds] = await Promise.all([
+        prisma.order.findMany({
+            where: { user_id },
+            select: {
+                order_id: true,
+                order_date: true,
+                order_status: true,
+                payment_status: true,
+                total_amount: true
+            },
+            orderBy: { order_date: "desc" },
+            take: 80
+        }),
+        prisma.review.findMany({
+            where: { user_id },
+            select: {
+                review_id: true,
+                created_at: true,
+                rating: true,
+                product: { select: { product_id: true, product_name: true } }
+            },
+            orderBy: { created_at: "desc" },
+            take: 40
+        }),
+        prisma.warranty.findMany({
+            where: { user_id },
+            select: {
+                warranty_id: true,
+                start_date: true,
+                end_date: true,
+                status: true,
+                order_item: {
+                    select: { product: { select: { product_name: true } } }
+                }
+            },
+            orderBy: { start_date: "desc" },
+            take: 40
+        }),
+        prisma.repairRequest.findMany({
+            where: { user_id },
+            select: {
+                repair_request_id: true,
+                request_date: true,
+                repair_status: true,
+                issue_description: true
+            },
+            orderBy: { request_date: "desc" },
+            take: 40
+        }),
+        prisma.refundRequest.findMany({
+            where: { user_id },
+            select: {
+                refund_request_id: true,
+                request_date: true,
+                refund_status: true,
+                refund_amount: true,
+                order_id: true
+            },
+            orderBy: { request_date: "desc" },
+            take: 40
+        })
+    ]);
+
+    const events = [];
+
+    for (const o of orders) {
+        events.push({
+            kind: "order",
+            at: o.order_date.toISOString(),
+            title: `Đơn hàng #${asId(o.order_id)}`,
+            meta: `${o.order_status || ""} · ${o.payment_status || ""}`,
+            detail: {
+                order_id: asId(o.order_id),
+                order_status: o.order_status,
+                payment_status: o.payment_status,
+                total_amount: o.total_amount != null ? String(o.total_amount) : null
+            }
+        });
+    }
+
+    for (const r of reviews) {
+        events.push({
+            kind: "review",
+            at: r.created_at.toISOString(),
+            title: `Đánh giá sản phẩm`,
+            meta: r.product?.product_name ? `${r.product.product_name} · ${r.rating}★` : `${r.rating}★`,
+            detail: {
+                review_id: asId(r.review_id),
+                product_id: r.product ? asId(r.product.product_id) : null,
+                product_name: r.product?.product_name ?? null,
+                rating: r.rating
+            }
+        });
+    }
+
+    for (const w of warranties) {
+        const pn = w.order_item?.product?.product_name;
+        events.push({
+            kind: "warranty",
+            at: w.start_date ? new Date(w.start_date).toISOString() : new Date(0).toISOString(),
+            title: "Bảo hành",
+            meta: `${w.status || ""}${pn ? ` · ${pn}` : ""}`,
+            detail: {
+                warranty_id: asId(w.warranty_id),
+                status: w.status,
+                end_date: w.end_date ? new Date(w.end_date).toISOString().slice(0, 10) : null
+            }
+        });
+    }
+
+    for (const rp of repairs) {
+        events.push({
+            kind: "repair",
+            at: rp.request_date.toISOString(),
+            title: "Yêu cầu sửa chữa",
+            meta: rp.repair_status || "",
+            detail: {
+                repair_request_id: asId(rp.repair_request_id),
+                repair_status: rp.repair_status
+            }
+        });
+    }
+
+    for (const f of refunds) {
+        events.push({
+            kind: "refund",
+            at: f.request_date.toISOString(),
+            title: `Yêu cầu hoàn tiền · Đơn #${asId(f.order_id)}`,
+            meta: `${f.refund_status || ""}${f.refund_amount != null ? ` · ${String(f.refund_amount)}đ` : ""}`,
+            detail: {
+                refund_request_id: asId(f.refund_request_id),
+                order_id: asId(f.order_id),
+                refund_status: f.refund_status,
+                refund_amount: f.refund_amount != null ? String(f.refund_amount) : null
+            }
+        });
+    }
+
+    events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+
+    return res.json(events.slice(0, 100));
 }
 
 async function updateUser(req, res) {
@@ -210,6 +366,10 @@ async function updateUser(req, res) {
     const data = {};
     if (req.body.full_name !== undefined) data.full_name = req.body.full_name;
     if (req.body.phone !== undefined) data.phone = req.body.phone;
+    if (req.body.address !== undefined) {
+        data.address =
+            req.body.address === null || req.body.address === "" ? null : String(req.body.address).trim();
+    }
     if (req.body.status !== undefined) data.status = req.body.status;
     if (req.body.role_id !== undefined) data.role_id = BigInt(req.body.role_id);
 
@@ -219,6 +379,7 @@ async function updateUser(req, res) {
         full_name: updated.full_name,
         email: updated.email,
         phone: updated.phone,
+        address: updated.address,
         status: updated.status,
         created_at: updated.created_at,
         role_id: asId(updated.role_id)
@@ -431,7 +592,16 @@ async function listRepairRequests(req, res) {
         const today = new Date();
         today.setUTCHours(0, 0, 0, 0);
         and.push({
-            OR: [{ warranty: { status: { not: "active" } } }, { warranty: { end_date: { lt: today } } }]
+            OR: [
+                { warranty: { status: "expired" } },
+                { warranty: { status: "void" } },
+                {
+                    warranty: {
+                        status: "active",
+                        end_date: { lt: today }
+                    }
+                }
+            ]
         });
     }
 
@@ -592,9 +762,12 @@ async function listRefundRequests(req, res) {
 
 async function updateRefundRequest(req, res) {
     const refund_request_id = BigInt(req.params.refund_request_id);
-    const existing = await prisma.refundRequest.findUnique({ where: { refund_request_id } });
+    const existing = await prisma.refundRequest.findUnique({
+        where: { refund_request_id },
+        include: { order: { select: { total_amount: true } } }
+    });
     if (!existing) return res.status(404).json({ message: "Refund request not found" });
-    const { refund_status, admin_note } = req.body;
+    const { refund_status, admin_note, refund_amount } = req.body;
     if (refund_status !== undefined) {
         const st = String(refund_status);
         if (!ALLOWED_REFUND_STATUSES.includes(st)) {
@@ -609,18 +782,36 @@ async function updateRefundRequest(req, res) {
         const t = admin_note === null || admin_note === "" ? null : String(admin_note).trim();
         data.admin_note = t || null;
     }
+    if (refund_amount !== undefined) {
+        const n = Number(refund_amount);
+        if (Number.isNaN(n) || n < 0) {
+            return res.status(400).json({ message: "refund_amount phải là số ≥ 0." });
+        }
+        const cap = existing.order?.total_amount != null ? Number(existing.order.total_amount) : null;
+        if (cap != null && n > cap) {
+            return res.status(400).json({
+                message: `Số tiền hoàn không được vượt tổng đơn (${cap}).`
+            });
+        }
+        data.refund_amount = n;
+    }
     if (Object.keys(data).length === 0) {
-        return res.status(400).json({ message: "Gửi refund_status hoặc admin_note." });
+        return res.status(400).json({ message: "Gửi refund_status, admin_note hoặc refund_amount." });
     }
     const updated = await prisma.refundRequest.update({
         where: { refund_request_id },
         data
     });
     return res.json({
-        ...updated,
         refund_request_id: asId(updated.refund_request_id),
         order_id: asId(updated.order_id),
-        user_id: asId(updated.user_id)
+        user_id: asId(updated.user_id),
+        request_date: updated.request_date,
+        reason: updated.reason,
+        buyer_note: updated.buyer_note,
+        admin_note: updated.admin_note,
+        refund_amount: updated.refund_amount != null ? String(updated.refund_amount) : null,
+        refund_status: updated.refund_status
     });
 }
 
@@ -928,6 +1119,7 @@ module.exports = {
     deleteReviewComment,
     listUsers,
     getUser,
+    getUserActivity,
     updateUser,
     listRoles,
     createRole,

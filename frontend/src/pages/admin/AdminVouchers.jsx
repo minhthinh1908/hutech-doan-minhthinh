@@ -152,7 +152,10 @@ export default function AdminVouchers() {
     <div className="admin-page">
       <h1>Voucher / khuyến mãi</h1>
       <p className="admin-page__muted">
-        Một form để tạo hoặc sửa; trạng thái khóa/mở chỉnh ở bảng dưới. Khách nhập mã ở giỏ hàng trước khi đặt hàng.
+        Admin tạo và quản lý mã: <strong>loại giảm</strong> (% hoặc cố định), <strong>giá trị</strong>,{" "}
+        <strong>điều kiện</strong> (đơn tối thiểu, danh mục), <strong>thời gian</strong> hiệu lực và giới hạn lượt. Cột{" "}
+        <strong>Đã dùng / giới hạn</strong> theo dõi số lần sử dụng. Form phía dưới để tạo/sửa; bảng: Sửa, Copy mã, Tắt/Bật,
+        Xóa. Buyer nhập mã ở giỏ hàng và xem số tiền giảm trước khi đặt.
       </p>
       {err ? (
         <p className="admin-msg admin-msg--err" role="alert">

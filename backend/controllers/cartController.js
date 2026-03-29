@@ -7,13 +7,51 @@ async function getOrCreateCart(user_id) {
     return prisma.cart.create({ data: { user_id } });
 }
 
+const productIncludeCart = {
+    category: { include: { parent: true } },
+    brand: true
+};
+
+function serializeCartProduct(p) {
+    if (!p) return null;
+    const { category, brand, ...rest } = p;
+    const cat = category
+        ? {
+              ...category,
+              category_id: category.category_id.toString(),
+              parent_id: category.parent_id != null ? category.parent_id.toString() : null,
+              parent: category.parent
+                  ? {
+                        ...category.parent,
+                        category_id: category.parent.category_id.toString(),
+                        parent_id:
+                            category.parent.parent_id != null
+                                ? category.parent.parent_id.toString()
+                                : null
+                    }
+                  : null
+          }
+        : null;
+    const br = brand
+        ? { ...brand, brand_id: brand.brand_id.toString() }
+        : null;
+    return {
+        ...rest,
+        product_id: p.product_id.toString(),
+        category_id: p.category_id.toString(),
+        brand_id: p.brand_id.toString(),
+        category: cat,
+        brand: br
+    };
+}
+
 async function getMyCart(req, res) {
     const user_id = BigInt(req.user.user_id);
     const cart = await prisma.cart.findUnique({
         where: { user_id },
         include: {
             cart_items: {
-                include: { product: true },
+                include: { product: { include: productIncludeCart } },
                 orderBy: { cart_item_id: "desc" }
             }
         }
@@ -26,14 +64,7 @@ async function getMyCart(req, res) {
             cart_item_id: i.cart_item_id.toString(),
             cart_id: i.cart_id.toString(),
             product_id: i.product_id.toString(),
-            product: i.product
-                ? {
-                      ...i.product,
-                      product_id: i.product.product_id.toString(),
-                      category_id: i.product.category_id.toString(),
-                      brand_id: i.product.brand_id.toString()
-                  }
-                : null
+            product: serializeCartProduct(i.product)
         }))
     });
 }
@@ -50,8 +81,10 @@ async function addItem(req, res) {
     const product = await prisma.product.findUnique({
         where: { product_id: BigInt(product_id) }
     });
-    if (!product) return res.status(404).json({ message: "Product not found" });
-    if (product.status !== "active") return res.status(400).json({ message: "Product inactive" });
+    if (!product) return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+    if (product.status !== "active") {
+        return res.status(400).json({ message: "Sản phẩm đã ngừng kinh doanh — không thể thêm vào giỏ" });
+    }
 
     const cart = await getOrCreateCart(user_id);
 
@@ -94,13 +127,29 @@ async function updateItem(req, res) {
 
     const cart = await prisma.cart.findUnique({ where: { user_id } });
     if (!cart) return res.status(404).json({ message: "Cart not found" });
-    const item = await prisma.cartItem.findUnique({ where: { cart_item_id: id } });
+    const item = await prisma.cartItem.findUnique({
+        where: { cart_item_id: id },
+        include: { product: true }
+    });
     if (!item || item.cart_id !== cart.cart_id) {
         return res.status(404).json({ message: "Cart item not found" });
     }
+    const product = item.product;
+    if (!product) return res.status(400).json({ message: "Sản phẩm không còn tồn tại" });
+    if (product.status !== "active") {
+        if (qty >= item.quantity) {
+            return res.status(400).json({
+                message:
+                    "Sản phẩm đã ngừng kinh doanh — chỉ có thể giảm số lượng hoặc xóa khỏi giỏ"
+            });
+        }
+    } else if (product.stock_quantity < qty) {
+        return res.status(400).json({ message: "Số lượng vượt quá tồn kho" });
+    }
+    const unit = effectiveUnitPrice(product);
     const updated = await prisma.cartItem.update({
         where: { cart_item_id: id },
-        data: { quantity: qty }
+        data: { quantity: qty, unit_price: unit }
     });
     return res.json({
         ...updated,

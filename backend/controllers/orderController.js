@@ -75,23 +75,30 @@ async function getMyOrder(req, res) {
 
 async function checkout(req, res) {
     const user_id = BigInt(req.user.user_id);
-    const { voucher_code } = req.body;
+    const { voucher_code, shipping_address } = req.body;
+    const addr = shipping_address != null ? String(shipping_address).trim() : "";
+    if (!addr) {
+        return res.status(400).json({ message: "Vui lòng nhập địa chỉ giao hàng." });
+    }
 
     const cart = await prisma.cart.findUnique({
         where: { user_id },
         include: { cart_items: { include: { product: true } } }
     });
     if (!cart || cart.cart_items.length === 0) {
-        return res.status(400).json({ message: "Cart is empty" });
+        return res.status(400).json({ message: "Giỏ hàng trống" });
     }
 
     for (const item of cart.cart_items) {
-        if (!item.product) return res.status(400).json({ message: "Invalid cart item" });
+        if (!item.product) return res.status(400).json({ message: "Dòng giỏ hàng không hợp lệ" });
         if (item.product.status !== "active") {
-            return res.status(400).json({ message: "Cart contains inactive product" });
+            return res.status(400).json({
+                message:
+                    "Giỏ hàng có sản phẩm đã ngừng kinh doanh — vui lòng xóa dòng đó rồi đặt hàng lại"
+            });
         }
         if (item.product.stock_quantity < item.quantity) {
-            return res.status(400).json({ message: "Insufficient stock for some items" });
+            return res.status(400).json({ message: "Một số sản phẩm không đủ tồn kho" });
         }
     }
 
@@ -135,7 +142,8 @@ async function checkout(req, res) {
                 discount_amount,
                 total_amount,
                 order_status: "pending",
-                payment_status: "unpaid"
+                payment_status: "unpaid",
+                shipping_address: addr
             }
         });
 
@@ -157,19 +165,17 @@ async function checkout(req, res) {
                 data: { stock_quantity: { decrement: item.quantity } }
             });
 
-            // create warranty if product has warranty_months
+            // Phiếu BH: chờ khách kích hoạt sau khi nhận hàng (đơn hoàn thành/giao)
             const months = item.product.warranty_months || 0;
             if (months > 0) {
-                const start = new Date();
-                const end = new Date(start);
-                end.setMonth(end.getMonth() + months);
                 await tx.warranty.create({
                     data: {
                         order_item_id: createdItem.order_item_id,
                         user_id,
-                        start_date: start,
-                        end_date: end,
-                        status: "active"
+                        start_date: null,
+                        end_date: null,
+                        status: "pending",
+                        warranty_months_snapshot: months
                     }
                 });
             }

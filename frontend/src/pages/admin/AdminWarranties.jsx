@@ -147,9 +147,9 @@ export default function AdminWarranties() {
     <div className="admin-page">
       <h1>Bảo hành</h1>
       <p className="admin-page__muted">
-        Danh sách theo kiểu <code className="admin-page__code-inline">AdminWarrantyItem</code> (API phẳng: mã phiếu, mã đơn,
-        khách, sản phẩm, hạn, sửa chữa, <code className="admin-page__code-inline">admin_note</code>, …). Khách xem tại «Xem bảo
-        hành».
+        Phiếu gắn <strong>order_item</strong> (dòng đơn). Trạng thái <strong>Chờ kích hoạt</strong> = khách chưa bấm kích hoạt
+        sau khi nhận hàng; cột <strong>Còn / quá hạn</strong> và <strong>Hết hạn</strong> theo ngày kết thúc sau khi đã kích hoạt.
+        Khách thao tác tại «Xem bảo hành» / chi tiết đơn.
       </p>
 
       {err ? (

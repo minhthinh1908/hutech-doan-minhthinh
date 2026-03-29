@@ -130,6 +130,7 @@ export default function ProductDetailPage() {
     "Mô tả chi tiết đang được cập nhật. Liên hệ hotline để được tư vấn kỹ thuật và báo giá.";
 
   const apiProductId = raw?.product_id ? String(raw.product_id) : String(product.id);
+  const isCatalogActive = raw == null ? true : raw.status === "active";
   const canBuy = !product.contactOnly && (raw?.stock_quantity == null || raw.stock_quantity > 0);
   const myReview = user ? reviews.some((r) => String(r.user_id) === String(user.user_id)) : false;
 
@@ -148,6 +149,10 @@ export default function ProductDetailPage() {
             "Đăng nhập hoặc đăng ký tài khoản để thêm sản phẩm vào giỏ hàng. Sau khi đăng nhập bạn sẽ quay lại trang này."
         }
       });
+      return;
+    }
+    if (!isCatalogActive) {
+      setCartErr("Sản phẩm đã ngừng kinh doanh — không thể thêm vào giỏ.");
       return;
     }
     if (!canBuy) return;
@@ -294,8 +299,22 @@ export default function ProductDetailPage() {
           </div>
           {cartErr ? <p className="detail-page__inline-err">{cartErr}</p> : null}
           {cartMsg ? <p className="detail-page__inline-ok">{cartMsg}</p> : null}
-          <button type="button" className="detail-page__cta" disabled={!canBuy} onClick={addToCart}>
-            {canBuy ? "Thêm vào giỏ hàng" : "Tạm hết hàng / liên hệ"}
+          {!isCatalogActive && raw ? (
+            <p className="detail-page__inline-err" role="status">
+              Sản phẩm đã ngừng kinh doanh (admin đã tắt) — không thể thêm vào giỏ.
+            </p>
+          ) : null}
+          <button
+            type="button"
+            className="detail-page__cta"
+            disabled={!canBuy || !isCatalogActive}
+            onClick={addToCart}
+          >
+            {!isCatalogActive && raw
+              ? "Ngừng kinh doanh"
+              : canBuy
+                ? "Thêm vào giỏ hàng"
+                : "Tạm hết hàng / liên hệ"}
           </button>
         </div>
       </div>
@@ -310,7 +329,8 @@ export default function ProductDetailPage() {
           Đánh giá sản phẩm
         </h2>
         <p className="detail-page__text detail-page__reviews--hint">
-          Mọi người có thể xem đánh giá đã duyệt. Chỉ tài khoản đã đăng nhập mới gửi đánh giá và bình luận.
+          Chỉ đánh giá đã duyệt hiển thị công khai. Quản trị viên có thể duyệt, ẩn hoặc xóa. Đăng nhập để cho điểm (1–5 sao),
+          viết nhận xét và trả lời đánh giá.
         </p>
         {reviews.length > 0 ? (
           <ul className="detail-page__review-list">
@@ -382,16 +402,26 @@ export default function ProductDetailPage() {
         {user && !myReview ? (
           <form className="detail-page__review-form" onSubmit={submitReview}>
             <p className="detail-page__text">Viết đánh giá (mỗi sản phẩm một lần).</p>
-            <label className="detail-page__review-field">
-              Điểm (1–5)
-              <select value={reviewRating} onChange={(e) => setReviewRating(Number(e.target.value))}>
+            <div className="detail-page__review-field">
+              <span className="detail-page__review-field-label">Điểm (1–5)</span>
+              <div className="detail-page__rating-picker" role="group" aria-label="Chọn điểm từ 1 đến 5">
                 {[1, 2, 3, 4, 5].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
+                  <button
+                    key={n}
+                    type="button"
+                    className={`detail-page__rating-star${n <= reviewRating ? " detail-page__rating-star--on" : ""}`}
+                    onClick={() => setReviewRating(n)}
+                    aria-pressed={n <= reviewRating}
+                    aria-label={`${n} sao`}
+                  >
+                    ★
+                  </button>
                 ))}
-              </select>
-            </label>
+                <span className="detail-page__rating-value" aria-hidden="true">
+                  {reviewRating}/5
+                </span>
+              </div>
+            </div>
             <label className="detail-page__review-field">
               Nhận xét
               <textarea

@@ -58,7 +58,10 @@ export default function OrdersPage() {
       <div className="buyer-page__hero">
         <div className="container">
           <h1 className="buyer-page__title">Theo dõi đơn hàng</h1>
-          <p className="buyer-page__sub">Xem trạng thái đơn và thanh toán.</p>
+          <p className="buyer-page__sub">
+            Danh sách đơn của bạn — xem trạng thái giao hàng và thanh toán. Trạng thái đơn do cửa hàng cập nhật (Admin); bạn
+            chỉ xem, không chỉnh sửa.
+          </p>
         </div>
       </div>
       <div className="container buyer-shell">
@@ -70,7 +73,9 @@ export default function OrdersPage() {
               {err}
             </p>
           ) : null}
-          {!loading && orders.length === 0 ? <p className="buyer-muted">Bạn chưa có đơn hàng nào.</p> : null}
+          {!loading && orders.length === 0 ? (
+            <p className="buyer-muted">Bạn chưa có đơn hàng nào. Sau khi đặt hàng, mã đơn và trạng thái sẽ hiển thị tại đây.</p>
+          ) : null}
           {orders.length > 0 ? (
             <div className="buyer-table-wrap">
               <table className="buyer-table">

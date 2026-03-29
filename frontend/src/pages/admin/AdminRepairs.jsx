@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiGet, apiPatch } from "../../api/client.js";
 import {
+  REPAIR_PRIMARY_FLOW,
   REPAIR_STATUS_LABELS,
   REPAIR_STATUS_ORDER,
   repairBadgeClass,
@@ -174,7 +175,9 @@ export default function AdminRepairs() {
     <div className="admin-page admin-repairs">
       <h1>Yêu cầu sửa chữa</h1>
       <p className="admin-page__muted">
-        Tiếp nhận và xử lý yêu cầu từ khách (trang «Xem bảo hành»). Tìm kiếm, lọc và mở chi tiết để cập nhật trạng thái &amp; ghi chú.
+        Tiếp nhận và xử lý yêu cầu từ khách (trang «Xem bảo hành»). Luồng trạng thái chính:{" "}
+        {REPAIR_PRIMARY_FLOW.map((s) => REPAIR_STATUS_LABELS[s]).join(" → ")}. Tìm kiếm, lọc và mở chi tiết để cập nhật
+        trạng thái và ghi chú xử lý.
       </p>
 
       <form className="admin-repairs__toolbar" onSubmit={applyFilters}>

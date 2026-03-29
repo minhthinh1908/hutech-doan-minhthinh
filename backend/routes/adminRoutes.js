@@ -17,6 +17,7 @@ router.delete("/reviews/:review_id", asyncHandler(adminController.deleteReview))
 router.delete("/review-comments/:review_comment_id", asyncHandler(adminController.deleteReviewComment));
 
 router.get("/users", asyncHandler(adminController.listUsers));
+router.get("/users/:user_id/activity", asyncHandler(adminController.getUserActivity));
 router.get("/users/:user_id", asyncHandler(adminController.getUser));
 router.patch("/users/:user_id", asyncHandler(adminController.updateUser));
 

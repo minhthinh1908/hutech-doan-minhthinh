@@ -21,8 +21,20 @@ function dayStr(d) {
 }
 
 function warrantyStatusVi(s) {
-  const m = { active: "Đang hiệu lực", expired: "Hết hạn", void: "Vô hiệu" };
+  const m = {
+    pending: "Chờ kích hoạt",
+    active: "Đang hiệu lực",
+    expired: "Hết hạn",
+    claimed: "Đã kích hoạt / yêu cầu",
+    void: "Vô hiệu"
+  };
   return m[s] || s;
+}
+
+function canActivateWarranty(w) {
+  if (!w || w.status !== "pending") return false;
+  const st = w.order_item?.order?.order_status;
+  return st === "completed" || st === "shipped";
 }
 
 function canRequestRepair(w) {
@@ -40,6 +52,7 @@ export default function WarrantiesPage() {
   const [issue, setIssue] = useState("");
   const [submitErr, setSubmitErr] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [activating, setActivating] = useState(null);
   const [files, setFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
 
@@ -114,8 +127,9 @@ export default function WarrantiesPage() {
         <div className="container">
           <h1 className="buyer-page__title">Xem bảo hành</h1>
           <p className="buyer-page__sub">
-            Phiếu bảo hành được kích hoạt tự động sau khi đặt hàng (sản phẩm có thời hạn bảo hành). Bạn xem thời hạn tại
-            đây và gửi yêu cầu sửa chữa khi còn trong thời gian bảo hành.
+            Sau khi <strong>nhận hàng</strong>, khi đơn ở trạng thái <strong>Hoàn thành / Đã giao</strong>, bạn bấm{" "}
+            <strong>Kích hoạt bảo hành</strong> để bắt đầu tính thời hạn. Sau đó bạn có thể gửi yêu cầu sửa chữa trong thời
+            gian hiệu lực.
           </p>
         </div>
       </div>
@@ -143,6 +157,7 @@ export default function WarrantiesPage() {
                     <th>Bắt đầu</th>
                     <th>Kết thúc</th>
                     <th>Trạng thái</th>
+                    <th>Đơn hàng</th>
                     <th>Số YC sửa</th>
                     <th>Thao tác</th>
                   </tr>
@@ -152,24 +167,56 @@ export default function WarrantiesPage() {
                     const pname = w.order_item?.product?.product_name || "—";
                     const nReq = Array.isArray(w.repair_requests) ? w.repair_requests.length : 0;
                     const ok = canRequestRepair(w);
+                    const oid = w.order_item?.order?.order_id;
+                    const ostatus = w.order_item?.order?.order_status;
+                    const canAct = canActivateWarranty(w);
+                    const oiid = w.order_item_id;
                     return (
                       <tr key={w.warranty_id}>
                         <td>#{w.warranty_id}</td>
                         <td>{pname}</td>
-                        <td>{formatDate(w.start_date)}</td>
-                        <td>{formatDate(w.end_date)}</td>
+                        <td>{w.start_date ? formatDate(w.start_date) : "—"}</td>
+                        <td>{w.end_date ? formatDate(w.end_date) : "—"}</td>
                         <td>{warrantyStatusVi(w.status)}</td>
+                        <td>
+                          {oid ? (
+                            <span title={ostatus || ""}>
+                              #{oid}
+                              {ostatus ? ` · ${ostatus}` : ""}
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
                         <td>{nReq}</td>
                         <td>
-                          <button
-                            type="button"
-                            className="buyer-btn buyer-btn--primary"
-                            disabled={!ok}
-                            title={ok ? "Gửi yêu cầu sửa chữa" : "Chỉ gửi được khi bảo hành còn hiệu lực"}
-                            onClick={() => ok && setModal(w.warranty_id)}
-                          >
-                            Yêu cầu sửa chữa
-                          </button>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
+                            {w.status === "pending" ? (
+                              <button
+                                type="button"
+                                className="buyer-btn buyer-btn--primary"
+                                disabled={!canAct || activating === oiid}
+                                title={
+                                  canAct
+                                    ? "Kích hoạt sau khi đã nhận hàng"
+                                    : "Đợi đơn hoàn thành / đã giao (hoặc đã kích hoạt)"
+                                }
+                                onClick={() => canAct && activateWarranty(oiid)}
+                              >
+                                {activating === oiid ? "Đang gửi…" : "Kích hoạt BH"}
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              className="buyer-btn buyer-btn--primary"
+                              style={w.status === "pending" ? { opacity: 0.85 } : undefined}
+                              disabled={!ok}
+                              title={ok ? "Gửi yêu cầu sửa chữa" : "Cần kích hoạt BH và còn trong thời hạn"}
+                              onClick={() => ok && setModal(w.warranty_id)}
+                            >
+                              Sửa chữa
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );

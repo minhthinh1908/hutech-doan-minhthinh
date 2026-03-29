@@ -22,6 +22,8 @@ model User {
   email           String    @unique
   password_hash   String
   phone           String?
+  /// Địa chỉ giao hàng / liên hệ (buyer cập nhật tại Hồ sơ)
+  address         String?   @db.Text
   status          String    @default("active")
   created_at      DateTime  @default(now())
 
@@ -162,6 +164,8 @@ model Order {
   discount_amount Decimal   @default(0.00) @db.Decimal(10, 2)
   total_amount    Decimal   @db.Decimal(10, 2)
   payment_status  String    @default("unpaid")
+  /// Địa chỉ giao hàng (snapshot lúc đặt — từ giỏ hàng)
+  shipping_address String?  @db.Text
 
   user            User           @relation(fields: [user_id], references: [user_id])
   order_items     OrderItem[]
@@ -270,9 +274,15 @@ model Warranty {
   warranty_id    BigInt    @id @default(autoincrement())
   order_item_id  BigInt
   user_id        BigInt
-  start_date     DateTime  @db.Date
-  end_date       DateTime  @db.Date
-  status         String    @default("active")
+  /// Có sau khi khách kích hoạt (hoặc dữ liệu cũ đã backfill)
+  start_date     DateTime? @db.Date
+  end_date       DateTime? @db.Date
+  /// pending = chờ kích hoạt sau nhận hàng | active | expired | claimed | void
+  status         String    @default("pending")
+  /// Thời điểm khách bấm kích hoạt — dùng tính start/end
+  activated_at   DateTime?
+  /// Số tháng BH lúc đặt hàng (không đổi khi admin sửa SP)
+  warranty_months_snapshot Int @default(0)
   /// Ghi chú hiển thị cho khách / nội bộ (phiếu BH)
   warranty_note  String?   @db.Text
   /// Ghi chú chỉ admin
@@ -293,7 +303,7 @@ model RepairRequest {
   user_id           BigInt
   request_date      DateTime  @default(now())
   issue_description String    @db.Text
-  /// pending | received | checking | in_progress | waiting_parts | repaired | rejected | completed | cancelled
+  /// pending | checking | repairing | completed (+ received | in_progress | waiting_parts | repaired | rejected | cancelled)
   repair_status     String    @default("pending")
   /// Mảng URL ảnh (/uploads/...) do khách đính kèm
   attachment_urls   Json?

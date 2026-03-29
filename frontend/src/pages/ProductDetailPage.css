@@ -298,6 +298,46 @@
   border-radius: 4px;
 }
 
+.detail-page__rating-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-wrap: wrap;
+}
+
+.detail-page__rating-star {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.65rem;
+  line-height: 1;
+  padding: 0.15rem 0.1rem;
+  color: #d0d0d0;
+  transition: color 0.15s ease;
+}
+
+.detail-page__rating-star--on {
+  color: #f5a623;
+}
+
+.detail-page__rating-star:hover,
+.detail-page__rating-star:focus-visible {
+  color: #e09400;
+  outline: none;
+}
+
+.detail-page__rating-star:focus-visible {
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.45);
+  border-radius: 2px;
+}
+
+.detail-page__rating-value {
+  margin-left: 0.4rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #444;
+}
+
 .detail-page__desc {
   padding: 0 1rem 2rem;
   max-width: 900px;

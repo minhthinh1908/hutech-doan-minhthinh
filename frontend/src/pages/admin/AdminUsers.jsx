@@ -18,27 +18,15 @@ function fmtDate(iso) {
   }
 }
 
-function orderStatusVi(s) {
+function activityKindVi(kind) {
   const m = {
-    pending: "Chờ xử lý",
-    confirmed: "Đã xác nhận",
-    shipping: "Đang giao",
-    completed: "Hoàn thành",
-    cancelled: "Đã hủy",
-    processing: "Đang xử lý (cũ)",
-    shipped: "Đang giao (cũ)"
+    order: "Đơn hàng",
+    review: "Đánh giá",
+    warranty: "Bảo hành",
+    repair: "Sửa chữa",
+    refund: "Hoàn tiền"
   };
-  return m[s] || s || "—";
-}
-
-function payVi(s) {
-  const m = {
-    unpaid: "Chưa thanh toán",
-    paid: "Đã thanh toán",
-    pending: "Đang chờ",
-    refunded: "Đã hoàn tiền"
-  };
-  return m[s] || s || "—";
+  return m[kind] || kind || "—";
 }
 
 export default function AdminUsers() {
@@ -50,7 +38,7 @@ export default function AdminUsers() {
 
   const [detailId, setDetailId] = useState(null);
   const [detail, setDetail] = useState(null);
-  const [detailOrders, setDetailOrders] = useState([]);
+  const [detailActivity, setDetailActivity] = useState([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailErr, setDetailErr] = useState("");
 
@@ -81,7 +69,7 @@ export default function AdminUsers() {
   useEffect(() => {
     if (!detailId) {
       setDetail(null);
-      setDetailOrders([]);
+      setDetailActivity([]);
       setDetailErr("");
       return undefined;
     }
@@ -90,17 +78,17 @@ export default function AdminUsers() {
     setDetailErr("");
     (async () => {
       try {
-        const [u, orders] = await Promise.all([
+        const [u, activity] = await Promise.all([
           apiGet(`/admin/users/${detailId}`),
-          apiGet("/admin/orders", { user_id: detailId })
+          apiGet(`/admin/users/${detailId}/activity`)
         ]);
         if (cancelled) return;
         setDetail(u);
-        setDetailOrders(Array.isArray(orders) ? orders : []);
+        setDetailActivity(Array.isArray(activity) ? activity : []);
       } catch (e) {
         if (!cancelled) {
           setDetail(null);
-          setDetailOrders([]);
+          setDetailActivity([]);
           setDetailErr(e.message || "Không tải được chi tiết.");
         }
       } finally {
@@ -308,6 +296,14 @@ export default function AdminUsers() {
                     <strong>Số điện thoại</strong>
                     {detail.phone || "—"}
                   </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <strong>Địa chỉ</strong>
+                    {detail.address ? (
+                      <span style={{ whiteSpace: "pre-wrap" }}>{detail.address}</span>
+                    ) : (
+                      "—"
+                    )}
+                  </div>
                   <div>
                     <strong>Vai trò</strong>
                     {detail.role_name || "—"}
@@ -327,31 +323,37 @@ export default function AdminUsers() {
                 </div>
 
                 <div>
-                  <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem" }}>Lịch sử đơn hàng</h3>
-                  {detailOrders.length === 0 ? (
+                  <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem" }}>Lịch sử hoạt động</h3>
+                  <p className="admin-page__muted" style={{ margin: "0 0 0.5rem", fontSize: "0.8rem" }}>
+                    Gồm đơn hàng, đánh giá, bảo hành, yêu cầu sửa chữa và hoàn tiền — sắp xếp mới nhất trước.
+                  </p>
+                  {detailActivity.length === 0 ? (
                     <p className="admin-page__muted" style={{ margin: 0 }}>
-                      Chưa có đơn hàng.
+                      Chưa có hoạt động nào được ghi nhận.
                     </p>
                   ) : (
-                    <div className="admin-table-wrap" style={{ maxHeight: "min(50vh, 320px)", overflow: "auto" }}>
+                    <div className="admin-table-wrap" style={{ maxHeight: "min(55vh, 360px)", overflow: "auto" }}>
                       <table className="admin-table admin-table--compact">
                         <thead>
                           <tr>
-                            <th>Mã đơn</th>
-                            <th>Ngày</th>
-                            <th>Trạng thái</th>
-                            <th>Thanh toán</th>
-                            <th>Tổng</th>
+                            <th>Thời gian</th>
+                            <th>Loại</th>
+                            <th>Tiêu đề</th>
+                            <th>Chi tiết</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {detailOrders.map((o) => (
-                            <tr key={String(o.order_id)}>
-                              <td>#{String(o.order_id)}</td>
-                              <td>{fmtDate(o.order_date)}</td>
-                              <td>{orderStatusVi(o.order_status)}</td>
-                              <td>{payVi(o.payment_status)}</td>
-                              <td>{money(o.total_amount)}đ</td>
+                          {detailActivity.map((ev, idx) => (
+                            <tr key={`${ev.kind}-${ev.at}-${idx}`}>
+                              <td>{fmtDate(ev.at)}</td>
+                              <td>{activityKindVi(ev.kind)}</td>
+                              <td>{ev.title || "—"}</td>
+                              <td style={{ maxWidth: "14rem", wordBreak: "break-word" }}>
+                                {ev.meta || "—"}
+                                {ev.kind === "order" && ev.detail?.total_amount != null ? (
+                                  <span> · {money(ev.detail.total_amount)}đ</span>
+                                ) : null}
+                              </td>
                             </tr>
                           ))}
                         </tbody>

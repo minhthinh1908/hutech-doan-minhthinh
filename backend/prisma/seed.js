@@ -84,6 +84,9 @@ async function ensureSiteFooter() {
 /** Mã voucher demo — hiển thị trong Admin → Voucher; khách nhập ở giỏ hàng (idempotent). */
 const DEMO_VOUCHER_CODE = "DEMO-GIAM10";
 
+/** Địa chỉ giao mẫu — gắn vào đơn seed */
+const DEMO_SHIPPING_ADDRESS = "73 Đường Đào Tấn, P. Nhơn Bình, TP. Quy Nhơn, Bình Định (địa chỉ mẫu seed)";
+
 async function ensureDemoVoucher(prismaClient) {
   const existing = await prismaClient.voucher.findUnique({
     where: { code: DEMO_VOUCHER_CODE }
@@ -207,7 +210,8 @@ async function ensureDemoOrder(prismaClient) {
         discount_amount: 0,
         total_amount: total,
         payment_status: "paid",
-        order_date: new Date()
+        order_date: new Date(),
+        shipping_address: DEMO_SHIPPING_ADDRESS
       }
     });
     await tx.orderItem.create({
@@ -386,7 +390,8 @@ async function ensureDemoWarrantyExtraBuyers(prismaClient) {
           discount_amount: 0,
           total_amount: lineTotal,
           payment_status: "paid",
-          order_date: new Date("2026-02-15T10:00:00.000Z")
+          order_date: new Date("2026-02-15T10:00:00.000Z"),
+          shipping_address: `${DEMO_SHIPPING_ADDRESS} — ${s.full_name}`
         }
       });
       const oi = await tx.orderItem.create({
