@@ -13,7 +13,7 @@ const prisma = new PrismaClient();
 seedDemoRefundRequests(prisma)
   .then((r) => {
     if (r.skipped && r.error === "no_demo_buyer") {
-      console.error("\n→ Chạy trước: npx prisma db seed  (để tạo demo-buyer@binhdinhtools.local)\n");
+      console.error("\n→ Chạy trước: npx prisma db seed  (để tạo demo-buyer@ecommercetools.local)\n");
       process.exitCode = 1;
     }
     process.exit(0);

@@ -1,7 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { apiPost } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
-import "./ProductCard.css";
 
 function formatMoney(n) {
   if (n == null || Number.isNaN(n)) return "";

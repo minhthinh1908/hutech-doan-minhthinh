@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 *,
 *::before,
 *::after {
@@ -5,13 +9,15 @@
 }
 
 :root {
-  /* Vàng chủ đạo giống mẫu (≈ #FFCC00 / #FFD700) */
-  --bd-yellow: #ffcc00;
-  --bd-yellow-dark: #e6b800;
-  --bd-black: #0a0a0a;
+  /* Admin design system — yellow / black */
+  --bd-yellow: #ffc107;
+  --bd-yellow-dark: #e6ac00;
+  --bd-black: #1a1a1a;
   --bd-white: #ffffff;
   --bd-gray: #f5f5f5;
-  --bd-text: #1a1a1a;
+  --bd-border: #e5e5e5;
+  --bd-text: #111111;
+  --bd-text-muted: #666666;
   --bd-red-phone: #c41e1e;
   --bd-sidebar-width: 220px;
   --font: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -59,4 +65,326 @@ img {
   margin-right: auto;
   padding-left: 1rem;
   padding-right: 1rem;
+}
+
+/* Core UI wrappers visual polish */
+.core-btn.p-button {
+  letter-spacing: 0.01em;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.core-btn.p-button.p-button-sm {
+  padding: 0.38rem 0.62rem;
+}
+
+.core-select.p-dropdown {
+  min-height: 2.75rem;
+  border-color: var(--bd-border);
+  transition: all 0.2s ease;
+  border-radius: 0.65rem;
+  background: var(--bd-white);
+}
+
+.core-select.p-dropdown:not(.p-disabled):hover {
+  border-color: var(--bd-yellow);
+  box-shadow: 0 2px 8px rgb(255 193 7 / 12%);
+}
+
+.core-select.p-dropdown.p-focus {
+  border-color: var(--bd-yellow);
+  box-shadow: 0 0 0 3px rgb(255 193 7 / 25%);
+}
+
+.core-select .p-dropdown-trigger {
+  color: var(--bd-text);
+  width: 2.5rem;
+}
+
+.core-select .p-dropdown-label {
+  padding: 0.62rem 0.85rem;
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.35;
+  color: var(--bd-text);
+}
+
+.core-select-panel.p-dropdown-panel {
+  max-height: min(320px, 50vh);
+  border-color: var(--bd-border);
+  background: var(--bd-white);
+  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1);
+}
+
+.core-select-panel .p-dropdown-items-wrapper {
+  max-height: min(280px, 45vh) !important;
+}
+
+.core-select-panel .p-dropdown-filter-container .p-dropdown-filter {
+  border: 1px solid var(--bd-border);
+  border-radius: 0.5rem;
+  min-height: 2.4rem;
+  padding: 0.55rem 2.1rem 0.55rem 0.8rem;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  color: var(--bd-text);
+  background: #fffef8;
+}
+
+.core-select-panel .p-dropdown-filter-container .p-dropdown-filter::placeholder {
+  color: #8a8a8a;
+}
+
+.core-select-panel .p-dropdown-filter-container .p-dropdown-filter-icon {
+  right: 0.7rem;
+  color: #8a8a8a;
+}
+
+.core-select-panel .p-dropdown-filter-container {
+  padding: 0.35rem 0.55rem 0.25rem;
+}
+
+.core-select-panel .p-dropdown-filter-container .p-dropdown-filter:focus {
+  border-color: var(--bd-yellow);
+  box-shadow: 0 0 0 3px rgb(255 193 7 / 20%);
+}
+
+.core-select-panel .p-dropdown-item {
+  font-size: 0.92rem;
+  transition: background-color 0.15s ease;
+}
+
+.core-select-panel .p-dropdown-item:not(.p-highlight):hover {
+  background: #fff8e1;
+}
+
+.core-select-panel .p-dropdown-item.p-highlight {
+  background: #fff3c4;
+  color: var(--bd-text);
+}
+
+.core-table.p-datatable .p-datatable-thead > tr > th {
+  background: var(--bd-gray);
+  color: var(--bd-text);
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-color: var(--bd-border);
+  padding: 0.65rem 0.75rem;
+  white-space: nowrap;
+  min-width: 7.5rem;
+}
+
+.core-table.p-datatable .p-datatable-tbody > tr {
+  background: #fcfcfc;
+}
+
+.core-table.p-datatable .p-datatable-tbody > tr:nth-child(even) {
+  background: #f7f7f7;
+}
+
+.core-table.p-datatable .p-datatable-tbody > tr > td {
+  border-color: var(--bd-border);
+  color: var(--bd-text);
+  padding: 0.65rem 0.75rem;
+  background: transparent;
+  vertical-align: top;
+  word-break: break-word;
+}
+
+.core-table.p-datatable .p-datatable-tbody > tr:hover > td {
+  background: #efefef;
+}
+
+.core-table.p-datatable .p-paginator {
+  border-color: var(--bd-border);
+  background: #efefef;
+}
+
+.core-table.p-datatable .p-paginator .p-paginator-page.p-highlight {
+  background: var(--bd-yellow);
+  border-color: var(--bd-yellow);
+  color: var(--bd-text);
+}
+
+.core-table.p-datatable .p-paginator .p-paginator-page:not(.p-highlight):hover {
+  background: #fff8e1;
+}
+
+.core-table.p-datatable .p-datatable-wrapper {
+  overflow-x: auto;
+}
+
+.core-table .p-tag {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Pinned action column (right) */
+.core-table--pinned-actions .p-datatable-thead > tr > th.core-table-actions-col,
+.core-table--pinned-actions .p-datatable-tbody > tr > td.core-table-actions-col {
+  background: #ffffff;
+  z-index: 2;
+}
+
+.core-table--pinned-actions .p-datatable-thead > tr > th.core-table-actions-col {
+  z-index: 3;
+}
+
+.core-table--pinned-actions .p-datatable-tbody > tr:hover > td.core-table-actions-col {
+  background: #efefef;
+}
+
+.core-table-action-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid var(--bd-border);
+  background: #fff;
+  color: var(--bd-text);
+  transition: all 0.2s ease;
+}
+
+.core-table-action-trigger:hover {
+  border-color: var(--bd-yellow);
+  background: #fff8e1;
+}
+
+.core-table-action-trigger:focus-visible {
+  outline: none;
+  border-color: var(--bd-yellow);
+  box-shadow: 0 0 0 3px rgb(255 193 7 / 25%);
+}
+
+.core-table-menu.p-menu,
+.core-table-menu.p-contextmenu {
+  border: 1px solid var(--bd-border);
+  border-radius: 0.75rem;
+  overflow: visible;
+  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.12);
+  z-index: 1200;
+}
+
+.core-table-menu .p-menuitem-link {
+  padding: 0.58rem 0.8rem;
+}
+
+.core-table-menu .p-menuitem-text {
+  color: var(--bd-text);
+  font-size: 0.92rem;
+}
+
+.core-table-menu .p-menuitem-icon {
+  color: #666;
+}
+
+.core-table-menu .p-menuitem-link:not(.p-disabled):hover {
+  background: #fff8e1;
+}
+
+/* PrimeReact submenu panel */
+.core-table-menu .p-submenu-list {
+  border: 1px solid var(--bd-border);
+  border-radius: 0.6rem;
+  background: #fff;
+  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.12);
+  z-index: 1250;
+}
+
+.core-toast .p-toast-message {
+  border-radius: 0.75rem;
+  border: 1px solid var(--bd-border);
+  box-shadow: 0 8px 20px rgb(0 0 0 / 12%);
+}
+
+.core-toast .p-toast-message .p-toast-summary {
+  font-weight: 700;
+  color: var(--bd-text);
+}
+
+.core-toast .p-toast-message .p-toast-detail {
+  color: #444;
+}
+
+.admin-form-label {
+  @apply block text-sm font-medium text-[#111111] mb-1;
+}
+
+.admin-form-control {
+  @apply w-full rounded-lg border border-[#E5E5E5] bg-white px-3 py-2.5 text-[15px] text-[#111111] shadow-sm transition-all duration-200;
+  line-height: 1.35;
+}
+
+.admin-form-control::placeholder {
+  color: var(--bd-text-muted);
+}
+
+.admin-form-control:hover {
+  border-color: #d1d1d1;
+}
+
+.admin-form-control:focus {
+  outline: none;
+  border-color: var(--bd-yellow);
+  box-shadow: 0 0 0 3px rgb(255 193 7 / 25%);
+}
+
+.admin-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-matrix-table th,
+.admin-matrix-table td {
+  border: 1px solid var(--bd-border);
+  padding: 0.6rem 0.7rem;
+}
+
+.admin-matrix-table thead th {
+  background: var(--bd-gray);
+  color: var(--bd-text);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-matrix-table tbody tr {
+  background: #fcfcfc;
+}
+
+.admin-matrix-table tbody tr:nth-child(even) {
+  background: #f7f7f7;
+}
+
+@layer components {
+  /* Admin layout: page content rhythm */
+  .admin-page {
+    @apply w-full space-y-6 text-[#111111];
+  }
+
+  .admin-section-title {
+    @apply text-lg font-semibold text-[#111111] border-l-4 border-[#FFC107] pl-3 mb-4;
+  }
+
+  .admin-lead {
+    @apply text-sm text-[#666666] leading-relaxed;
+  }
+}
+
+/* PrimeReact Card inside admin shell */
+.admin-layout .p-card {
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.admin-layout .p-card .p-card-body {
+  padding: 1.25rem 1.5rem;
 }

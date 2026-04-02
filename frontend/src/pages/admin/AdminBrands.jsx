@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPost, apiPut } from "../../api/client.js";
-import "./AdminPages.css";
+import { CoreButton, CoreCard, CoreCheckbox, CoreTable } from "../../components/ui/index.js";
+import useAdminToastNotices from "../../hooks/useAdminToastNotices.js";
 
 export default function AdminBrands() {
   const [items, setItems] = useState([]);
@@ -12,6 +13,7 @@ export default function AdminBrands() {
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  useAdminToastNotices({ err, msg, setErr, setMsg });
 
   const loadAll = useCallback(async () => {
     const [brands, cb, treeData] = await Promise.all([
@@ -49,7 +51,7 @@ export default function AdminBrands() {
       setMsg(data?.message || "Đã đồng bộ thương hiệu mẫu.");
       await loadAll();
     } catch (e) {
-      setErr(e.message || "Không tạo được");
+      setErr(e.message || "Không tạo được dữ liệu.");
     } finally {
       setSeeding(false);
     }
@@ -64,7 +66,7 @@ export default function AdminBrands() {
       setMsg("Đã xóa thương hiệu. Trang khách và form sản phẩm sẽ dùng danh sách mới sau khi tải lại.");
       await loadAll();
     } catch (e) {
-      setErr(e.message || "Không xóa được");
+      setErr(e.message || "Không xóa được dữ liệu.");
     }
   }
 
@@ -79,7 +81,7 @@ export default function AdminBrands() {
       setDesc("");
       await loadAll();
     } catch (e) {
-      setErr(e.message || "Lỗi");
+      setErr(e.message || "Không lưu được dữ liệu.");
     }
   }
 
@@ -106,7 +108,7 @@ export default function AdminBrands() {
       setMsg("Đã lưu: thương hiệu hiển thị theo từng nhóm danh mục (menu + trang chủ).");
       await loadAll();
     } catch (e) {
-      setErr(e.message || "Không lưu được");
+      setErr(e.message || "Không lưu được dữ liệu.");
     } finally {
       setSaving(false);
     }
@@ -114,49 +116,41 @@ export default function AdminBrands() {
 
   return (
     <div className="admin-page">
-      <h1>Thương hiệu</h1>
-      <p className="admin-page__muted">
+      <h1 className="admin-section-title">Thương hiệu</h1>
+      <p className="admin-lead">
         <strong>Danh sách dưới</strong>: thêm / xóa hãng (xóa chỉ khi không còn sản phẩm).{" "}
         <strong>Ma trận</strong>: chọn hãng nào hiện khi khách chọn từng nhóm danh mục gốc — đồng bộ với thanh «THƯƠNG HIỆU»
         và lọc trang chủ. Khi mở trang Sản phẩm, dropdown «Thương hiệu» lấy đúng danh sách này.
       </p>
-      <div className="admin-category-toolbar" style={{ marginBottom: "0.75rem" }}>
-        <button type="button" className="admin-btn admin-btn--gold" disabled={seeding} onClick={() => seedFiveBrands()}>
-          {seeding ? "Đang tạo…" : "Đồng bộ 5 thương hiệu mẫu (Milwaukee, DEWALT, …)"}
-        </button>
-        <span className="admin-page__muted" style={{ margin: 0 }}>
+      <CoreCard>
+        <div className="flex flex-col md:flex-row md:items-center gap-3">
+          <CoreButton
+            type="button"
+            disabled={seeding}
+            label={seeding ? "Đang tạo…" : "Đồng bộ 5 thương hiệu mẫu (Milwaukee, DEWALT, …)"}
+            onClick={() => seedFiveBrands()}
+          />
+          <span className="text-sm text-[#666666]">
           Nếu DB trống, <strong>GET /brands</strong> cũng tự tạo mẫu một lần. Sau đó có thể tick ma trận và{" "}
           <strong>Danh mục → Đồng bộ</strong> nếu cần thêm nhóm.
         </span>
-      </div>
-      {err ? (
-        <p className="admin-msg admin-msg--err" role="alert">
-          {err}
-        </p>
-      ) : null}
-      {msg ? (
-        <p className="admin-msg admin-msg--ok" role="status">
-          {msg}
-        </p>
-      ) : null}
-
-      <section className="admin-brand-matrix" style={{ marginBottom: "1.5rem" }}>
-        <h2 className="admin-page__muted" style={{ fontSize: "1rem", margin: "0 0 0.75rem" }}>
-          Thương hiệu theo nhóm danh mục
-        </h2>
+        </div>
+      </CoreCard>
+      <CoreCard>
+        <h2 className="admin-section-title">Thương hiệu theo nhóm danh mục</h2>
         {tree.length === 0 ? (
-          <p className="admin-page__muted">Chưa có danh mục gốc. Vào Admin → Danh mục → Đồng bộ catalog mẫu.</p>
+          <p className="text-sm text-[#666666]">Chưa có danh mục gốc. Vào Admin → Danh mục → Đồng bộ catalog mẫu.</p>
         ) : matrixBrands.length === 0 ? (
-          <p className="admin-page__muted">Chưa có thương hiệu nào — thêm ở form bên dưới hoặc bấm nút vàng phía trên.</p>
+          <p className="text-sm text-[#666666]">Chưa có thương hiệu nào — thêm ở form bên dưới hoặc bấm nút phía trên.</p>
         ) : (
           <>
-            <div className="admin-table-wrap">
-              <table className="admin-table admin-table--matrix">
+            <div className="overflow-auto">
+              <table className="admin-matrix-table min-w-max text-sm">
                 <thead>
                   <tr>
-                    <th>Nhóm danh mục (gốc)</th>
+                    <th className="p-2 text-left">Nhóm danh mục (gốc)</th>
                     {matrixBrands.map((b) => (
-                      <th key={b.brand_id} className="admin-table__th-brand">
+                      <th key={b.brand_id} className="text-center p-2 whitespace-nowrap">
                         {b.brand_name}
                       </th>
                     ))}
@@ -164,21 +158,14 @@ export default function AdminBrands() {
                 </thead>
                 <tbody>
                   {tree.map((root) => (
-                    <tr key={root.category_id}>
-                      <td>
-                        <strong>{root.category_name}</strong>
-                      </td>
+                    <tr key={root.category_id} className="hover:bg-[#FFF8E1] transition-colors">
+                      <td className="p-2 font-semibold whitespace-nowrap">{root.category_name}</td>
                       {matrixBrands.map((b) => {
                         const rk = String(root.category_id);
                         const checked = (draft[rk] || []).includes(String(b.brand_id));
                         return (
-                          <td key={b.brand_id} style={{ textAlign: "center" }}>
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggle(root.category_id, b.brand_id)}
-                              aria-label={`${root.category_name} — ${b.brand_name}`}
-                            />
+                          <td key={b.brand_id} className="p-2 text-center">
+                            <CoreCheckbox checked={checked} onChange={() => toggle(root.category_id, b.brand_id)} />
                           </td>
                         );
                       })}
@@ -187,70 +174,54 @@ export default function AdminBrands() {
                 </tbody>
               </table>
             </div>
-            <button type="button" className="admin-btn" disabled={saving} onClick={() => saveMatrix()}>
-              {saving ? "Đang lưu…" : "Lưu ma trận thương hiệu"}
-            </button>
+            <CoreButton
+              type="button"
+              className="mt-3"
+              disabled={saving}
+              label={saving ? "Đang lưu…" : "Lưu ma trận thương hiệu"}
+              onClick={() => saveMatrix()}
+            />
           </>
         )}
-      </section>
+      </CoreCard>
 
-      <h2 className="admin-page__muted" style={{ fontSize: "1rem", margin: "0 0 0.5rem" }}>
-        Thêm thương hiệu
-      </h2>
-      <form className="admin-form" onSubmit={submit}>
-        <label>
-          Tên thương hiệu
-          <input required value={name} onChange={(e) => setName(e.target.value)} />
-        </label>
-        <label>
-          Mô tả (tuỳ chọn)
-          <input value={desc} onChange={(e) => setDesc(e.target.value)} />
-        </label>
-        <button type="submit" className="admin-btn">
-          Thêm thương hiệu
-        </button>
-      </form>
+      <CoreCard>
+        <h2 className="admin-section-title">Thêm thương hiệu</h2>
+        <form className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end" onSubmit={submit}>
+          <label className="admin-form-label">
+            Tên thương hiệu
+            <input required value={name} onChange={(e) => setName(e.target.value)} className="admin-form-control mt-1" />
+          </label>
+          <label className="admin-form-label">
+            Mô tả (tuỳ chọn)
+            <input value={desc} onChange={(e) => setDesc(e.target.value)} className="admin-form-control mt-1" />
+          </label>
+          <div>
+            <CoreButton type="submit" label="Thêm thương hiệu" />
+          </div>
+        </form>
+      </CoreCard>
 
-      <h2 className="admin-page__muted" style={{ fontSize: "1rem", margin: "1.25rem 0 0.5rem" }}>
-        Danh sách (sửa/xóa — xóa chỉ khi không còn sản phẩm)
-      </h2>
-      <div className="admin-table-wrap">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Tên</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={3} style={{ color: "#666" }}>
-                  Đang trống — tải lại trang hoặc bấm «Đồng bộ 5 thương hiệu mẫu».
-                </td>
-              </tr>
-            ) : (
-              items.map((b) => (
-                <tr key={b.brand_id}>
-                  <td>{b.brand_id}</td>
-                  <td>{b.brand_name}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className="admin-btn admin-btn--danger"
-                      style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem" }}
-                      onClick={() => removeBrand(b.brand_id)}
-                    >
-                      Xóa
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <CoreCard>
+        <h2 className="admin-section-title">Danh sách (xóa chỉ khi không còn sản phẩm)</h2>
+        <CoreTable
+          value={items}
+          dataKey="brand_id"
+          emptyMessage="Chưa có thương hiệu nào. Bấm «Đồng bộ 5 thương hiệu mẫu» để tạo dữ liệu."
+          columns={[
+            { key: "id", header: "ID", field: "brand_id" },
+            { key: "name", header: "Tên", field: "brand_name" },
+          ]}
+          actionConfig={{
+            onDelete: (row) => removeBrand(row.brand_id),
+            copyFields: [
+              { label: "ID thương hiệu", field: "brand_id" },
+              { label: "Tên thương hiệu", field: "brand_name" },
+            ],
+            excel: { fileName: "admin-brands.xlsx" },
+          }}
+        />
+      </CoreCard>
     </div>
   );
 }

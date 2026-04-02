@@ -1,4 +1,24 @@
 /**
+ * URL ảnh từ admin (https, /uploads/…, www…) — dùng cho thẻ img.
+ */
+export function resolvePublicImageUrl(url) {
+  if (url == null) return null;
+  const u = String(url).trim();
+  if (u === "") return null;
+  if (
+    u.startsWith("http://") ||
+    u.startsWith("https://") ||
+    u.startsWith("/") ||
+    u.startsWith("//") ||
+    u.startsWith("data:")
+  ) {
+    return u;
+  }
+  if (u.startsWith("www.")) return `https://${u}`;
+  return u;
+}
+
+/**
  * Flash sale đang hiệu lực (theo cờ + khung giờ + có giá flash).
  */
 export function isFlashSaleActive(p) {
@@ -56,7 +76,7 @@ export function mapApiProductToCard(p) {
     hot: Boolean(p.is_hot),
     flashSale: flashActive,
     contactOnly,
-    image: p.image_url || null,
+    image: resolvePublicImageUrl(p.image_url),
     brand: p.brand?.brand_name || "",
     description: p.description,
     sku: p.sku,

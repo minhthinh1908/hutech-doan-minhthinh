@@ -14,11 +14,22 @@ const storage = multer.diskStorage({
     }
 });
 
+function isAllowedImage(file) {
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    const extOk = [".jpg", ".jpeg", ".png", ".gif", ".webp"].includes(ext);
+    const mime = String(file.mimetype || "").toLowerCase();
+    const mimeOk = /^image\/(jpeg|jpg|pjpeg|png|gif|webp)$/i.test(mime);
+    // Một số trình duyệt / iOS gửi application/octet-stream kèm đuôi .jpg
+    if (mimeOk) return true;
+    if (extOk && (mime === "application/octet-stream" || mime === "")) return true;
+    return false;
+}
+
 module.exports = multer({
     storage,
-    limits: { fileSize: 5 * 1024 * 1024 },
+    limits: { fileSize: 8 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
-        if (/^image\/(jpeg|png|gif|webp)$/i.test(file.mimetype)) cb(null, true);
-        else cb(new Error("Chỉ chấp nhận ảnh JPEG, PNG, GIF, WebP"));
+        if (isAllowedImage(file)) cb(null, true);
+        else cb(new Error("Chỉ chấp nhận ảnh JPEG, PNG, GIF, WebP (tối đa 8MB)"));
     }
 });

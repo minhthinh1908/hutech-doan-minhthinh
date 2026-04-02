@@ -1,5 +1,4 @@
 import { NavLink } from "react-router-dom";
-import "./TopBar.css";
 
 /** Thứ tự giống mẫu: Trang chủ → Sản phẩm → … → Liên hệ */
 const NAV_ITEMS = [
@@ -15,8 +14,9 @@ function navLinkClass({ isActive }) {
   return "top-bar__link" + (isActive ? " top-bar__link--active" : "");
 }
 
+/** Một chu kỳ: khẩu hiệu 1 → khẩu hiệu 2; lặp vô hạn (hai segment giống nhau = marquee khớp nối). */
 const MARQUEE_PHRASE =
-  "BẠN CẦN · CHÚNG TÔI CÓ · BẠN CẦN · CHÚNG TÔI CÓ · BẠN CẦN · CHÚNG TÔI CÓ · ";
+  "BẠN CẦN · CHÚNG TÔI CÓ · UY TÍN TẠO NÊN THƯƠNG HIỆU · ";
 
 export default function TopBar() {
   return (
@@ -29,7 +29,7 @@ export default function TopBar() {
           </div>
         </div>
         <span className="visually-hidden">
-          Khẩu hiệu chạy liên tục: Bạn cần, chúng tôi có
+          Khẩu hiệu chạy liên tục: Bạn cần, chúng tôi có. Uy tín tạo nên thương hiệu.
         </span>
         <nav className="top-bar__nav" aria-label="Điều hướng phụ">
           {NAV_ITEMS.map((item) => (

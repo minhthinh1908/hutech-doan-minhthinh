@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import "./AuthPages.css";
 
 function redirectTarget(fromState) {
   if (fromState && typeof fromState === "object" && fromState.pathname) {

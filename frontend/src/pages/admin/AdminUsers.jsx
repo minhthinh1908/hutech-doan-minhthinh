@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiGet, apiPatch } from "../../api/client.js";
-import "./AdminPages.css";
+import { CoreBadge, CoreButton, CoreCard, CoreDialog, CoreMessage, CoreSpinner, CoreTable } from "../../components/ui/index.js";
+import useAdminToastNotices from "../../hooks/useAdminToastNotices.js";
 
 function money(n) {
   return Number(n || 0).toLocaleString("vi-VN");
@@ -35,6 +36,7 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
+  useAdminToastNotices({ err, msg, setErr, setMsg });
 
   const [detailId, setDetailId] = useState(null);
   const [detail, setDetail] = useState(null);
@@ -56,7 +58,7 @@ export default function AdminUsers() {
       try {
         await load();
       } catch (e) {
-        if (!cancelled) setErr(e.message || "Không tải được danh sách.");
+        if (!cancelled) setErr(e.message || "Không tải được dữ liệu.");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -116,7 +118,7 @@ export default function AdminUsers() {
         }
       }
     } catch (e) {
-      setErr(e.message || "Không đổi được vai trò");
+      setErr(e.message || "Không cập nhật được dữ liệu.");
     }
   }
 
@@ -129,7 +131,7 @@ export default function AdminUsers() {
       await load();
       setDetail((d) => (d && String(d.user_id) === String(userId) ? { ...d, status } : d));
     } catch (e) {
-      setErr(e.message || "Không cập nhật được trạng thái.");
+      setErr(e.message || "Không cập nhật được dữ liệu.");
     }
   }
 
@@ -139,233 +141,148 @@ export default function AdminUsers() {
 
   return (
     <div className="admin-page">
-      <h1>Quản lý người dùng</h1>
-      <p className="admin-page__muted">
+      <h1 className="admin-section-title">Quản lý người dùng</h1>
+      <p className="admin-lead">
         Xem danh sách, khóa / mở tài khoản, xem chi tiết và lịch sử đơn hàng. Khách không đăng nhập không có trong
         danh sách này.
       </p>
-      {err ? (
-        <p className="admin-msg admin-msg--err" role="alert">
-          {err}
-        </p>
-      ) : null}
-      {msg ? (
-        <p className="admin-msg admin-msg--ok" role="status">
-          {msg}
-        </p>
-      ) : null}
-
       {loading ? (
-        <p>Đang tải…</p>
-      ) : (
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Họ tên</th>
-                <th>Email</th>
-                <th>SĐT</th>
-                <th>Vai trò</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.length === 0 ? (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: "center", color: "#666" }}>
-                    Chưa có người dùng nào.
-                  </td>
-                </tr>
-              ) : (
-                users.map((u) => {
-                  const locked = u.status === "inactive";
-                  return (
-                    <tr key={u.user_id}>
-                      <td>{u.user_id}</td>
-                      <td>{u.full_name}</td>
-                      <td style={{ wordBreak: "break-all" }}>{u.email}</td>
-                      <td>{u.phone || "—"}</td>
-                      <td>
-                        <select
-                          className="admin-select--order-status"
-                          value={String(u.role_id)}
-                          onChange={(e) => setRole(u.user_id, e.target.value)}
-                          aria-label={`Vai trò ${u.full_name}`}
-                        >
-                          {roles.map((r) => (
-                            <option key={r.role_id} value={String(r.role_id)}>
-                              {r.role_name}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <span className={`admin-badge ${locked ? "admin-badge--off" : "admin-badge--ok"}`}>
-                          {locked ? "Đã khóa" : "Hoạt động"}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", alignItems: "center" }}>
-                          <button
-                            type="button"
-                            className="admin-btn"
-                            style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem" }}
-                            onClick={() => {
-                              setDetailId(String(u.user_id));
-                              setMsg("");
-                            }}
-                          >
-                            Chi tiết
-                          </button>
-                          {locked ? (
-                            <button
-                              type="button"
-                              className="admin-btn"
-                              style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem" }}
-                              onClick={() => setStatus(u.user_id, "active")}
-                            >
-                              Mở khóa
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="admin-btn admin-btn--danger"
-                              style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem" }}
-                              onClick={() => {
-                                if (window.confirm(`Khóa tài khoản ${u.email}? Họ sẽ không đăng nhập được.`)) {
-                                  setStatus(u.user_id, "inactive");
-                                }
-                              }}
-                            >
-                              Khóa
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+        <div className="flex items-center justify-center gap-3 py-10">
+          <CoreSpinner />
+          <span className="text-[#666666] font-semibold">Đang tải dữ liệu…</span>
         </div>
+      ) : (
+        <CoreCard>
+          <CoreTable
+            value={users}
+            dataKey="user_id"
+            rows={10}
+            emptyMessage="Chưa có người dùng nào."
+            columns={[
+              { key: "id", header: "ID", field: "user_id" },
+              { key: "name", header: "Họ tên", field: "full_name" },
+              { key: "email", header: "Email", body: (u) => <span className="break-all">{u.email}</span> },
+              { key: "phone", header: "SĐT", body: (u) => u.phone || "—" },
+              {
+                key: "role",
+                header: "Vai trò",
+                body: (u) => (
+                  <select
+                    className="admin-form-control min-w-[140px] py-1.5 text-xs"
+                    value={String(u.role_id)}
+                    onChange={(e) => setRole(u.user_id, e.target.value)}
+                  >
+                    {roles.map((r) => (
+                      <option key={r.role_id} value={String(r.role_id)}>
+                        {r.role_name}
+                      </option>
+                    ))}
+                  </select>
+                ),
+              },
+              {
+                key: "status",
+                header: "Trạng thái",
+                body: (u) => {
+                  const locked = u.status === "inactive";
+                  return <CoreBadge value={locked ? "Đã khóa" : "Hoạt động"} tone={locked ? "danger" : "success"} />;
+                },
+              },
+            ]}
+            actionConfig={{
+              onView: (row) => {
+                setDetailId(String(row.user_id));
+                setMsg("");
+              },
+              copyFields: [
+                { label: "ID người dùng", field: "user_id" },
+                { label: "Email", field: "email" },
+                { label: "Số điện thoại", field: "phone" },
+              ],
+              getExtraItems: (row) => {
+                const locked = row.status === "inactive";
+                return [
+                  locked
+                    ? {
+                        label: "Mở khóa",
+                        icon: "pi pi-lock-open",
+                        command: () => setStatus(row.user_id, "active"),
+                      }
+                    : {
+                        label: "Khóa tài khoản",
+                        icon: "pi pi-lock",
+                        command: () => {
+                          if (window.confirm(`Khóa tài khoản ${row.email}? Họ sẽ không đăng nhập được.`)) {
+                            setStatus(row.user_id, "inactive");
+                          }
+                        },
+                      },
+                ];
+              },
+              excel: { fileName: "admin-users.xlsx" },
+            }}
+          />
+        </CoreCard>
       )}
 
-      {detailId ? (
-        <div
-          className="admin-modal-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="admin-user-detail-title"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) closeDetail();
-          }}
-        >
-          <div className="admin-modal admin-modal--user" onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="admin-modal__close" aria-label="Đóng" onClick={closeDetail}>
-              ×
-            </button>
-            <h2 className="admin-modal__title" id="admin-user-detail-title">
-              Chi tiết người dùng
-            </h2>
-
-            {detailLoading ? (
-              <p>Đang tải…</p>
-            ) : detailErr ? (
-              <p className="admin-msg admin-msg--err" role="alert">
-                {detailErr}
-              </p>
-            ) : detail ? (
-              <div className="admin-order-detail">
-                <div className="admin-order-detail__grid">
-                  <div>
-                    <strong>ID</strong>
-                    {detail.user_id}
-                  </div>
-                  <div>
-                    <strong>Họ tên</strong>
-                    {detail.full_name}
-                  </div>
-                  <div>
-                    <strong>Email</strong>
-                    {detail.email}
-                  </div>
-                  <div>
-                    <strong>Số điện thoại</strong>
-                    {detail.phone || "—"}
-                  </div>
-                  <div style={{ gridColumn: "1 / -1" }}>
-                    <strong>Địa chỉ</strong>
-                    {detail.address ? (
-                      <span style={{ whiteSpace: "pre-wrap" }}>{detail.address}</span>
-                    ) : (
-                      "—"
-                    )}
-                  </div>
-                  <div>
-                    <strong>Vai trò</strong>
-                    {detail.role_name || "—"}
-                  </div>
-                  <div>
-                    <strong>Trạng thái</strong>
-                    {detail.status === "inactive" ? "Đã khóa (inactive)" : "Hoạt động (active)"}
-                  </div>
-                  <div>
-                    <strong>Ngày tạo</strong>
-                    {fmtDate(detail.created_at)}
-                  </div>
-                  <div>
-                    <strong>Tổng đơn hàng</strong>
-                    {detail.order_count != null ? detail.order_count : "—"}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem" }}>Lịch sử hoạt động</h3>
-                  <p className="admin-page__muted" style={{ margin: "0 0 0.5rem", fontSize: "0.8rem" }}>
-                    Gồm đơn hàng, đánh giá, bảo hành, yêu cầu sửa chữa và hoàn tiền — sắp xếp mới nhất trước.
-                  </p>
-                  {detailActivity.length === 0 ? (
-                    <p className="admin-page__muted" style={{ margin: 0 }}>
-                      Chưa có hoạt động nào được ghi nhận.
-                    </p>
-                  ) : (
-                    <div className="admin-table-wrap" style={{ maxHeight: "min(55vh, 360px)", overflow: "auto" }}>
-                      <table className="admin-table admin-table--compact">
-                        <thead>
-                          <tr>
-                            <th>Thời gian</th>
-                            <th>Loại</th>
-                            <th>Tiêu đề</th>
-                            <th>Chi tiết</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {detailActivity.map((ev, idx) => (
-                            <tr key={`${ev.kind}-${ev.at}-${idx}`}>
-                              <td>{fmtDate(ev.at)}</td>
-                              <td>{activityKindVi(ev.kind)}</td>
-                              <td>{ev.title || "—"}</td>
-                              <td style={{ maxWidth: "14rem", wordBreak: "break-word" }}>
-                                {ev.meta || "—"}
-                                {ev.kind === "order" && ev.detail?.total_amount != null ? (
-                                  <span> · {money(ev.detail.total_amount)}đ</span>
-                                ) : null}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : null}
+      <CoreDialog
+        header="Chi tiết người dùng"
+        visible={detailId != null}
+        modal
+        onHide={closeDetail}
+        breakpoints={{ "960px": "100vw" }}
+      >
+        {detailLoading ? (
+          <div className="flex items-center gap-3 py-4">
+            <CoreSpinner className="h-6 w-6" />
+            <span>Đang tải chi tiết…</span>
           </div>
-        </div>
-      ) : null}
+        ) : detailErr ? (
+          <CoreMessage severity="error" text={detailErr} />
+        ) : detail ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div><strong>ID:</strong> {detail.user_id}</div>
+              <div><strong>Họ tên:</strong> {detail.full_name}</div>
+              <div><strong>Email:</strong> {detail.email}</div>
+              <div><strong>Số điện thoại:</strong> {detail.phone || "—"}</div>
+              <div className="sm:col-span-2"><strong>Địa chỉ:</strong> <span className="whitespace-pre-wrap">{detail.address || "—"}</span></div>
+              <div><strong>Vai trò:</strong> {detail.role_name || "—"}</div>
+              <div><strong>Trạng thái:</strong> {detail.status === "inactive" ? "Đã khóa (inactive)" : "Hoạt động (active)"}</div>
+              <div><strong>Ngày tạo:</strong> {fmtDate(detail.created_at)}</div>
+              <div><strong>Tổng đơn hàng:</strong> {detail.order_count != null ? detail.order_count : "—"}</div>
+            </div>
+
+            <CoreCard>
+              <h3 className="font-bold mb-2">Lịch sử hoạt động</h3>
+              {detailActivity.length === 0 ? (
+                <p className="text-sm text-[#666666] m-0">Chưa có hoạt động nào được ghi nhận.</p>
+              ) : (
+                <CoreTable
+                  value={detailActivity}
+                  dataKey="at"
+                  paginator={false}
+                  columns={[
+                    { key: "at", header: "Thời gian", body: (ev) => fmtDate(ev.at) },
+                    { key: "kind", header: "Loại", body: (ev) => activityKindVi(ev.kind) },
+                    { key: "title", header: "Tiêu đề", body: (ev) => ev.title || "—" },
+                    {
+                      key: "meta",
+                      header: "Chi tiết",
+                      body: (ev) => (
+                        <span>
+                          {ev.meta || "—"}
+                          {ev.kind === "order" && ev.detail?.total_amount != null ? ` · ${money(ev.detail.total_amount)}đ` : ""}
+                        </span>
+                      ),
+                    },
+                  ]}
+                />
+              )}
+            </CoreCard>
+          </div>
+        ) : null}
+      </CoreDialog>
     </div>
   );
 }

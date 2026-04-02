@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiGet, apiPost, apiUploadFile } from "../api/client.js";
 import BuyerSidebar from "../components/BuyerSidebar.jsx";
-import "./BuyerPages.css";
 
 function formatDate(d) {
   if (!d) return "—";

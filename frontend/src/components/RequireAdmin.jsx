@@ -7,7 +7,7 @@ export default function RequireAdmin({ children }) {
 
   if (loading) {
     return (
-      <div className="admin-page__loading" style={{ padding: "2rem", textAlign: "center" }}>
+      <div className="p-8 text-center text-sm text-[#666666]">
         Đang kiểm tra quyền…
       </div>
     );

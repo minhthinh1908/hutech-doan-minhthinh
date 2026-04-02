@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet } from "../api/client.js";
-import "./SiteFooter.css";
+import { slugifyTitle } from "../utils/slugify.js";
 
 function PolicyLink({ item }) {
   if (!item?.label) return null;
@@ -12,9 +12,10 @@ function PolicyLink({ item }) {
       </a>
     );
   }
-  if (item.to) {
+  const internalTo = item.to || (slugifyTitle(item.label) ? `/${slugifyTitle(item.label)}` : "");
+  if (internalTo) {
     return (
-      <Link to={item.to} className="site-footer__policy-link">
+      <Link to={internalTo} className="site-footer__policy-link">
         {item.label}
       </Link>
     );
@@ -48,7 +49,7 @@ export default function SiteFooter() {
       <div className="site-footer__main">
         <div className="container site-footer__grid">
           <div className="site-footer__col site-footer__col--brand">
-            <h2 className="site-footer__brand">{data?.site_name || "BÌNH ĐỊNH TOOLS"}</h2>
+            <h2 className="site-footer__brand">{data?.site_name || "E-COMMERCE TOOLS"}</h2>
 
             {data?.branch1_label || data?.branch1_phone || data?.branch1_address ? (
               <div className="site-footer__block">
@@ -149,7 +150,7 @@ export default function SiteFooter() {
         <div className="container site-footer__bottom-inner">
           <p className="site-footer__copy">
             {data?.copyright_line ||
-              `© ${new Date().getFullYear()} ${data?.site_name || "BÌNH ĐỊNH TOOLS"}`}
+              `© ${new Date().getFullYear()} ${data?.site_name || "E-COMMERCE TOOLS"}`}
           </p>
         </div>
       </div>

@@ -23,6 +23,12 @@ router.post(
     asyncHandler(categoryController.create)
 );
 router.patch(
+    "/reorder",
+    verifyToken,
+    authorizeRoles("admin"),
+    asyncHandler(categoryController.reorder)
+);
+router.patch(
     "/:id",
     verifyToken,
     authorizeRoles("admin"),

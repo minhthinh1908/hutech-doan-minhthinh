@@ -7,7 +7,7 @@ const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
-const EMAIL = "test-buyer@binhdinhtools.local";
+const EMAIL = "test-buyer@ecommercetools.local";
 const PASSWORD = "Test@123456";
 const FULL_NAME = "Khách test mua hàng";
 

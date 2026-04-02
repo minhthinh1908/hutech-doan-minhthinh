@@ -2,13 +2,54 @@ const prisma = require("../prisma/client");
 const {
     assertAdminCannotMarkGatewayPaidWithoutFlow,
     assertOrderCanBeMarkedPaid,
-    PAYMENT_LINE_SUCCESS
+    PAYMENT_LINE_SUCCESS,
+    syncCodBankTransferPaymentsForAdminPaidOrder
 } = require("../services/paymentBusinessRules");
 const { ALLOWED_PAYMENT_STATUSES, isAllowedPaymentStatus } = require("../constants/paymentStatus");
 const { appendPaymentStatusLog } = require("../services/paymentStatusLog");
 
 function asId(v) {
     return typeof v === "bigint" ? v.toString() : v;
+}
+
+function parseIntSafe(v, fallback) {
+    const n = Number.parseInt(String(v ?? ""), 10);
+    return Number.isFinite(n) ? n : fallback;
+}
+
+function parsePagination(req, { defaultLimit = 20, maxLimit = 100 } = {}) {
+    // Supports either:
+    // - page/limit (1-indexed)
+    // - first/rows (PrimeReact DataTable style)
+    const hasPage = req.query.page != null || req.query.limit != null;
+    const hasFirst = req.query.first != null || req.query.rows != null;
+    if (!hasPage && !hasFirst) return null;
+
+    let limit = parseIntSafe(hasFirst ? req.query.rows : req.query.limit, defaultLimit);
+    if (limit < 1) limit = defaultLimit;
+    if (limit > maxLimit) limit = maxLimit;
+
+    let page = parseIntSafe(req.query.page, 1);
+    if (hasFirst) {
+        const first = Math.max(0, parseIntSafe(req.query.first, 0));
+        page = Math.floor(first / limit) + 1;
+    }
+    if (page < 1) page = 1;
+
+    const skip = (page - 1) * limit;
+    return { page, limit, skip, take: limit };
+}
+
+function parseSort(req, allowedFields, fallback) {
+    const sortField = req.query.sortField != null ? String(req.query.sortField).trim() : "";
+    const sortOrderRaw = req.query.sortOrder != null ? String(req.query.sortOrder).trim() : "";
+    const sortOrderNum = Number(sortOrderRaw);
+    const direction = sortOrderNum === -1 || sortOrderRaw.toLowerCase() === "desc" ? "desc" : "asc";
+
+    if (sortField && allowedFields.includes(sortField)) {
+        return { [sortField]: direction };
+    }
+    return fallback;
 }
 
 /** JSON an toàn khi Prisma trả BigInt / Decimal lồng nhau */
@@ -173,6 +214,46 @@ const repairInclude = {
 };
 
 async function listUsers(req, res) {
+    const pg = parsePagination(req, { defaultLimit: 20, maxLimit: 100 });
+    const orderBy = parseSort(req, ["user_id", "created_at", "full_name", "email", "status", "role_id"], {
+        user_id: "desc"
+    });
+
+    if (pg) {
+        const [total, users] = await Promise.all([
+            prisma.user.count(),
+            prisma.user.findMany({
+                select: {
+                    user_id: true,
+                    full_name: true,
+                    email: true,
+                    phone: true,
+                    address: true,
+                    status: true,
+                    created_at: true,
+                    role_id: true,
+                    role: true
+                },
+                orderBy,
+                skip: pg.skip,
+                take: pg.take
+            })
+        ]);
+        return res.json({
+            items: users.map((u) => ({
+                user_id: asId(u.user_id),
+                full_name: u.full_name,
+                email: u.email,
+                phone: u.phone,
+                address: u.address,
+                status: u.status,
+                created_at: u.created_at,
+                role_id: asId(u.role_id),
+                role_name: u.role?.role_name
+            })),
+            total
+        });
+    }
     const users = await prisma.user.findMany({
         select: {
             user_id: true,
@@ -472,6 +553,31 @@ async function listOrders(req, res) {
         }
     }
 
+    const pg = parsePagination(req, { defaultLimit: 20, maxLimit: 100 });
+    const orderBy = parseSort(req, ["order_id", "order_date", "total_amount", "order_status", "payment_status"], {
+        order_id: "desc"
+    });
+
+    if (pg) {
+        const [total, orders] = await Promise.all([
+            prisma.order.count({ where }),
+            prisma.order.findMany({
+                where,
+                include: {
+                    user: { select: { user_id: true, full_name: true, email: true, phone: true } },
+                    order_items: { include: { product: true } },
+                    payments: true,
+                    order_vouchers: { include: { voucher: true } },
+                    refund_requests: true
+                },
+                orderBy,
+                skip: pg.skip,
+                take: pg.take
+            })
+        ]);
+        return res.json({ items: serializeBigInt(orders), total });
+    }
+
     const orders = await prisma.order.findMany({
         where,
         include: {
@@ -521,40 +627,49 @@ async function updateOrderStatus(req, res) {
                 message: `payment_status phải là một trong: ${ALLOWED_PAYMENT_STATUSES.join(", ")}`
             });
         }
-        if (ps === "paid") {
-            const okPaid = await assertOrderCanBeMarkedPaid(prisma, order_id);
-            if (!okPaid.ok) {
-                return res.status(400).json({ message: okPaid.message });
-            }
-        }
     }
-    const updated = await prisma.$transaction(async (tx) => {
-        const before = await tx.order.findUnique({ where: { order_id } });
-        const u = await tx.order.update({
-            where: { order_id },
-            data: {
-                ...(order_status !== undefined ? { order_status } : {}),
-                ...(payment_status !== undefined ? { payment_status } : {})
+    let updated;
+    try {
+        updated = await prisma.$transaction(async (tx) => {
+            if (payment_status !== undefined && String(payment_status).toLowerCase() === "paid") {
+                const sync = await syncCodBankTransferPaymentsForAdminPaidOrder(tx, order_id);
+                if (!sync.ok) {
+                    throw new Error(`BAD_REQUEST:${sync.message}`);
+                }
+                const okPaid = await assertOrderCanBeMarkedPaid(tx, order_id);
+                if (!okPaid.ok) {
+                    throw new Error(`BAD_REQUEST:${okPaid.message}`);
+                }
             }
-        });
-        if (payment_status !== undefined && before.payment_status !== u.payment_status) {
-            await appendPaymentStatusLog({
-                tx,
-                order_id,
-                payment_id: null,
-                from_status: before.payment_status,
-                to_status: u.payment_status,
-                source: "admin",
-                note: `Cập nhật trạng thái thanh toán đơn (admin #${req.user?.user_id ?? "?"})`
+            const before = await tx.order.findUnique({ where: { order_id } });
+            const u = await tx.order.update({
+                where: { order_id },
+                data: {
+                    ...(order_status !== undefined ? { order_status } : {}),
+                    ...(payment_status !== undefined ? { payment_status } : {})
+                }
             });
+            if (payment_status !== undefined && before.payment_status !== u.payment_status) {
+                await appendPaymentStatusLog({
+                    tx,
+                    order_id,
+                    payment_id: null,
+                    from_status: before.payment_status,
+                    to_status: u.payment_status,
+                    source: "admin",
+                    note: `Cập nhật trạng thái thanh toán đơn (admin #${req.user?.user_id ?? "?"})`
+                });
+            }
+            return u;
+        });
+    } catch (e) {
+        const msg = String(e?.message || "");
+        if (msg.startsWith("BAD_REQUEST:")) {
+            return res.status(400).json({ message: msg.slice("BAD_REQUEST:".length) });
         }
-        return u;
-    });
-    return res.json({
-        ...updated,
-        order_id: asId(updated.order_id),
-        user_id: asId(updated.user_id)
-    });
+        throw e;
+    }
+    return res.json(serializeBigInt(updated));
 }
 
 async function listPayments(req, res) {
@@ -646,6 +761,39 @@ async function listPayments(req, res) {
 
     const where = and.length > 0 ? { AND: and } : {};
 
+    const pg = parsePagination(req, { defaultLimit: 20, maxLimit: 100 });
+    const orderBy = parseSort(req, ["payment_id", "paid_at", "payment_status", "transaction_code", "paid_amount"], {
+        payment_id: "desc"
+    });
+
+    if (pg) {
+        const [total, rows] = await Promise.all([
+            prisma.payment.count({ where }),
+            prisma.payment.findMany({
+                where,
+                include: {
+                    order: {
+                        select: {
+                            order_id: true,
+                            order_status: true,
+                            total_amount: true,
+                            payment_status: true,
+                            order_date: true,
+                            preferred_payment_method: true,
+                            user: {
+                                select: { user_id: true, full_name: true, email: true, phone: true }
+                            }
+                        }
+                    }
+                },
+                orderBy,
+                skip: pg.skip,
+                take: pg.take
+            })
+        ]);
+        return res.json({ items: serializeBigInt(rows), total });
+    }
+
     const rows = await prisma.payment.findMany({
         where,
         include: {
@@ -663,7 +811,7 @@ async function listPayments(req, res) {
                 }
             }
         },
-        orderBy: { payment_id: "desc" },
+        orderBy,
         take: 500
     });
     return res.json(serializeBigInt(rows));
@@ -838,9 +986,25 @@ async function updatePayment(req, res) {
 }
 
 async function listWarranties(req, res) {
+    const pg = parsePagination(req, { defaultLimit: 20, maxLimit: 100 });
+    const orderBy = parseSort(req, ["warranty_id", "start_date", "end_date", "status", "created_at"], {
+        warranty_id: "desc"
+    });
+    if (pg) {
+        const [total, warranties] = await Promise.all([
+            prisma.warranty.count(),
+            prisma.warranty.findMany({
+                include: WARRANTY_LIST_INCLUDE,
+                orderBy,
+                skip: pg.skip,
+                take: pg.take
+            })
+        ]);
+        return res.json({ items: warranties.map(serializeAdminWarrantyItem), total });
+    }
     const warranties = await prisma.warranty.findMany({
         include: WARRANTY_LIST_INCLUDE,
-        orderBy: { warranty_id: "desc" }
+        orderBy
     });
     return res.json(warranties.map(serializeAdminWarrantyItem));
 }
@@ -945,10 +1109,29 @@ async function listRepairRequests(req, res) {
 
     const where = and.length ? { AND: and } : {};
 
+    const pg = parsePagination(req, { defaultLimit: 20, maxLimit: 100 });
+    const orderBy = parseSort(req, ["repair_request_id", "request_date", "repair_status"], {
+        repair_request_id: "desc"
+    });
+
+    if (pg) {
+        const [total, items] = await Promise.all([
+            prisma.repairRequest.count({ where }),
+            prisma.repairRequest.findMany({
+                where,
+                include: repairInclude,
+                orderBy,
+                skip: pg.skip,
+                take: pg.take
+            })
+        ]);
+        return res.json({ items: items.map((rr) => serializeBigInt(rr)), total });
+    }
+
     const items = await prisma.repairRequest.findMany({
         where,
         include: repairInclude,
-        orderBy: { repair_request_id: "desc" }
+        orderBy
     });
     return res.json(items.map((rr) => serializeBigInt(rr)));
 }
@@ -1026,6 +1209,65 @@ async function updateRepairRequest(req, res) {
 }
 
 async function listRefundRequests(req, res) {
+    const pg = parsePagination(req, { defaultLimit: 20, maxLimit: 100 });
+    const orderBy = parseSort(req, ["refund_request_id", "request_date", "refund_status", "refund_amount", "order_id"], {
+        refund_request_id: "desc"
+    });
+    if (pg) {
+        const [total, items] = await Promise.all([
+            prisma.refundRequest.count(),
+            prisma.refundRequest.findMany({
+                include: {
+                    user: { select: { user_id: true, full_name: true, email: true } },
+                    order: {
+                        select: {
+                            order_id: true,
+                            user_id: true,
+                            order_date: true,
+                            order_status: true,
+                            total_amount: true,
+                            payment_status: true
+                        }
+                    }
+                },
+                orderBy,
+                skip: pg.skip,
+                take: pg.take
+            })
+        ]);
+        return res.json({
+            items: items.map((r) => ({
+                refund_request_id: asId(r.refund_request_id),
+                order_id: asId(r.order_id),
+                user_id: asId(r.user_id),
+                request_date: r.request_date,
+                reason: r.reason,
+                buyer_note: r.buyer_note,
+                admin_note: r.admin_note,
+                refund_amount: r.refund_amount != null ? String(r.refund_amount) : null,
+                refund_status: r.refund_status,
+                user: r.user
+                    ? {
+                          user_id: asId(r.user.user_id),
+                          full_name: r.user.full_name,
+                          email: r.user.email
+                      }
+                    : null,
+                order: r.order
+                    ? {
+                          order_id: asId(r.order.order_id),
+                          user_id: asId(r.order.user_id),
+                          order_date: r.order.order_date,
+                          order_status: r.order.order_status,
+                          total_amount: r.order.total_amount != null ? String(r.order.total_amount) : null,
+                          payment_status: r.order.payment_status
+                      }
+                    : null
+            })),
+            total
+        });
+    }
+
     const items = await prisma.refundRequest.findMany({
         include: {
             user: { select: { user_id: true, full_name: true, email: true } },
@@ -1040,7 +1282,7 @@ async function listRefundRequests(req, res) {
                 }
             }
         },
-        orderBy: { refund_request_id: "desc" }
+        orderBy
     });
     return res.json(
         items.map((r) => ({
@@ -1324,6 +1566,34 @@ async function listReviews(req, res) {
         }
         where.moderation_status = rawSt;
     }
+    const pg = parsePagination(req, { defaultLimit: 20, maxLimit: 100 });
+    const orderBy = parseSort(req, ["review_id", "created_at", "rating", "moderation_status"], {
+        review_id: "desc"
+    });
+
+    if (pg) {
+        const [total, reviews] = await Promise.all([
+            prisma.review.count({ where }),
+            prisma.review.findMany({
+                where,
+                include: {
+                    user: { select: { user_id: true, full_name: true, email: true } },
+                    product: { select: { product_id: true, product_name: true, sku: true } },
+                    _count: { select: { comments: true } },
+                    comments: {
+                        take: 12,
+                        orderBy: { created_at: "desc" },
+                        include: { user: { select: { user_id: true, full_name: true, email: true } } }
+                    }
+                },
+                orderBy,
+                skip: pg.skip,
+                take: pg.take
+            })
+        ]);
+        return res.json({ items: serializeBigInt(reviews), total });
+    }
+
     const reviews = await prisma.review.findMany({
         where,
         include: {
@@ -1336,7 +1606,7 @@ async function listReviews(req, res) {
                 include: { user: { select: { user_id: true, full_name: true, email: true } } }
             }
         },
-        orderBy: { review_id: "desc" }
+        orderBy
     });
     return res.json(serializeBigInt(reviews));
 }

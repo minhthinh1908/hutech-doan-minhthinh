@@ -1,4 +1,3 @@
-import "./FloatingWarranty.css";
 
 function IconHeadset() {
   return (

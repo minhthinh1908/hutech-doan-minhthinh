@@ -117,9 +117,9 @@
 /* Tên địa phương — vàng đậm, không ép IN HOA */
 .logo-compact__line1 {
   font-family: var(--font, "Be Vietnam Pro", system-ui, sans-serif);
-  font-size: 0.65rem;
+  font-size: 0.58rem;
   font-weight: 800;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   color: #c99700;
   -webkit-font-smoothing: antialiased;
   animation: logo-compact-text-led 2.8s ease-in-out infinite;

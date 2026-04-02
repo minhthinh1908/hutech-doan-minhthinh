@@ -3,7 +3,6 @@ import { apiGet } from "../api/client.js";
 import { mapApiProductToCard } from "../utils/mapProduct.js";
 import { getRecentlyViewedSnapshots } from "../utils/recentlyViewed.js";
 import ProductCard from "./ProductCard.jsx";
-import "./HomeRecommendations.css";
 
 export default function HomeRecommendations() {
   const [personal, setPersonal] = useState([]);

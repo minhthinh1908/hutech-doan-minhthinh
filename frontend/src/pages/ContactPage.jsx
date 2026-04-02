@@ -1,5 +1,4 @@
 import { useState } from "react";
-import "./ContactPage.css";
 
 export default function ContactPage() {
   const [sent, setSent] = useState(false);
@@ -21,7 +20,7 @@ export default function ContactPage() {
         <div className="container">
           <h1 className="contact-page__title">Liên hệ</h1>
           <p className="contact-page__lead">
-            BINH DINH TOOLS — Máy móc &amp; thiết bị công nghiệp. Gửi yêu cầu cho chúng tôi,
+            E-commerce Tools — Máy móc &amp; thiết bị công nghiệp. Gửi yêu cầu cho chúng tôi,
             hotline hỗ trợ trong giờ làm việc.
           </p>
         </div>
@@ -38,7 +37,7 @@ export default function ContactPage() {
             <article className="contact-card">
               <h3 className="contact-card__title">Hotline tư vấn</h3>
               <p className="contact-card__line">
-                CN Bình Định:{" "}
+                CN 1:{" "}
                 <a href="tel:0336634677" className="contact-card__phone">
                   0336 634 677
                 </a>
@@ -52,7 +51,7 @@ export default function ContactPage() {
             </article>
 
             <article className="contact-card">
-              <h3 className="contact-card__title">Chi nhánh Bình Định</h3>
+              <h3 className="contact-card__title">Chi nhánh 1</h3>
               <p className="contact-card__text">
                 Địa chỉ: Quy Nhon, Bình Định (cập nhật theo cửa hàng thực tế)
               </p>
@@ -70,7 +69,7 @@ export default function ContactPage() {
 
           <div className="contact-page__map" aria-label="Bản đồ (placeholder)">
             <iframe
-              title="Bản đồ khu vực Bình Định"
+              title="Bản đồ khu vực cửa hàng"
               src="https://www.openstreetmap.org/export/embed.html?bbox=108.95%2C13.65%2C109.35%2C14.05&layer=mapnik"
               loading="lazy"
             />

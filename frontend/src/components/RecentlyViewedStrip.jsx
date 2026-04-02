@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getRecentlyViewedSnapshots } from "../utils/recentlyViewed.js";
 import ProductCard from "./ProductCard.jsx";
-import "./RecentlyViewedStrip.css";
 
 export default function RecentlyViewedStrip() {
   const [items, setItems] = useState([]);

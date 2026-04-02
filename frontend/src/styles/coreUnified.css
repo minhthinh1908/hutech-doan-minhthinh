@@ -1,0 +1,27 @@
+/* Unified legacy style bridge: single import point */
+@import "../App.css";
+
+/* Components */
+@import "../components/SiteFooter.css";
+@import "../components/MainHeader.css";
+@import "../components/CategoryNav.css";
+@import "../components/HomeFeaturedShowcase.css";
+@import "../components/TopBar.css";
+@import "../components/HomeRecommendations.css";
+@import "../components/ProductCard.css";
+@import "../components/FloatingWarranty.css";
+@import "../components/RecentlyViewedStrip.css";
+@import "../components/ScrollToTopButton.css";
+@import "../components/AdminShell.css";
+
+/* Pages */
+@import "../pages/BuyerPages.css";
+@import "../pages/StaticPage.css";
+@import "../pages/ContactPage.css";
+@import "../pages/HomePage.css";
+@import "../pages/ProductDetailPage.css";
+@import "../pages/ProductBrowsePage.css";
+@import "../pages/AuthPages.css";
+
+/* Shared brand accents */
+@import "./brandAccent.css";

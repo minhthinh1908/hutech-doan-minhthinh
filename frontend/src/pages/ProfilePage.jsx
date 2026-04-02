@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import BuyerSidebar from "../components/BuyerSidebar.jsx";
-import "./BuyerPages.css";
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth();

@@ -17,11 +17,14 @@ const adminRoutes = require("./routes/adminRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const webhookRoutes = require("./routes/webhookRoutes");
 const siteFooterRoutes = require("./routes/siteFooterRoutes");
+const cmsPageRoutes = require("./routes/cmsPageRoutes");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
-app.use(express.json());
+const requestBodyLimit = process.env.REQUEST_BODY_LIMIT || "10mb";
+app.use(express.json({ limit: requestBodyLimit }));
+app.use(express.urlencoded({ extended: true, limit: requestBodyLimit }));
 
 const uploadsPath = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsPath)) fs.mkdirSync(uploadsPath, { recursive: true });
@@ -45,6 +48,7 @@ app.use("/api/warranties", warrantyRoutes);
 app.use("/api/repair-requests", repairRoutes);
 app.use("/api/refund-requests", refundRoutes);
 app.use("/api/site-footer", siteFooterRoutes);
+app.use("/api/cms-pages", cmsPageRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/webhooks", webhookRoutes);
 

@@ -7,6 +7,17 @@ const DEFAULT_POLICIES = [
     { label: "Chính sách bảo mật thông tin", to: "/lien-he" }
 ];
 
+function slugifyTitle(input) {
+    return String(input || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "d")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+}
+
 function isSafeMapEmbedUrl(url) {
     if (url == null || String(url).trim() === "") return true;
     try {
@@ -33,11 +44,28 @@ function normalizePolicies(raw) {
     return arr
         .filter((x) => x && typeof x.label === "string" && x.label.trim())
         .map((x) => {
-            const o = { label: x.label.trim() };
-            if (x.to && String(x.to).trim()) o.to = String(x.to).trim();
+            const label = x.label.trim();
+            const o = { label };
+            const slug = slugifyTitle(label);
+            if (slug) o.to = `/${slug}`;
             if (x.href && String(x.href).trim()) o.href = String(x.href).trim();
             return o;
         });
+}
+
+async function ensureCmsPagesForPolicies(policies) {
+    const internalPolicies = Array.isArray(policies)
+        ? policies.filter((item) => item && !item.href && item.to && String(item.to).startsWith("/"))
+        : [];
+    for (const item of internalPolicies) {
+        const slug = String(item.to).replace(/^\/+/, "").trim();
+        if (!slug) continue;
+        await prisma.cmsPage.upsert({
+            where: { slug },
+            create: { slug, title: item.label || slug, body_html: "<p></p>" },
+            update: { title: item.label || slug }
+        });
+    }
 }
 
 async function getPublic(req, res) {
@@ -46,16 +74,16 @@ async function getPublic(req, res) {
         row = await prisma.siteFooter.create({
             data: {
                 id: 1,
-                site_name: "BÌNH ĐỊNH TOOLS",
-                branch1_label: "Chi nhánh Bình Định:",
+                site_name: "E-COMMERCE TOOLS",
+                branch1_label: "Chi nhánh 1:",
                 branch1_phone: "0336 634 677",
                 branch1_address: "73 Đường Đào Tấn, Phường Nhơn Bình, Thành phố Quy Nhơn, Tỉnh Bình Định",
                 branch2_label: "Chi nhánh HCM:",
                 branch2_phone: "0981 278 914",
                 branch2_address: "2A, đường số 9, phường Phú Lâm, Thành Phố Hồ Chí Minh",
-                email: "binhdinhtools@gmail.com",
-                website_url: "https://binhdinhtools.vn",
-                copyright_line: "© BÌNH ĐỊNH TOOLS",
+                email: "contact@ecommercetools.com",
+                website_url: "https://ecommercetools.com",
+                copyright_line: "© E-COMMERCE TOOLS",
                 policies_json: DEFAULT_POLICIES
             }
         });
@@ -79,7 +107,7 @@ async function update(req, res) {
     const data = {
         site_name:
             b.site_name !== undefined
-                ? String(b.site_name || "").trim() || "BÌNH ĐỊNH TOOLS"
+                ? String(b.site_name || "").trim() || "E-COMMERCE TOOLS"
                 : undefined,
         branch1_label: b.branch1_label !== undefined ? (b.branch1_label ? String(b.branch1_label) : null) : undefined,
         branch1_phone: b.branch1_phone !== undefined ? (b.branch1_phone ? String(b.branch1_phone) : null) : undefined,
@@ -113,7 +141,7 @@ async function update(req, res) {
         where: { id: 1 },
         create: {
             id: 1,
-            site_name: data.site_name || "BÌNH ĐỊNH TOOLS",
+            site_name: data.site_name || "E-COMMERCE TOOLS",
             branch1_label: data.branch1_label ?? null,
             branch1_phone: data.branch1_phone ?? null,
             branch1_address: data.branch1_address ?? null,
@@ -129,6 +157,14 @@ async function update(req, res) {
         },
         update: data
     });
+
+    if (data.policies_json) {
+        try {
+            await ensureCmsPagesForPolicies(data.policies_json);
+        } catch (e) {
+            if (!(e && e.code === "P2021")) throw e;
+        }
+    }
 
     return res.json(row);
 }

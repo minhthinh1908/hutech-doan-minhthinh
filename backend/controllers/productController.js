@@ -57,6 +57,9 @@ function serializeProduct(p) {
         product_id: p.product_id.toString(),
         category_id: p.category_id.toString(),
         brand_id: p.brand_id.toString(),
+        price: rest.price != null ? Number(rest.price) : null,
+        old_price: rest.old_price != null ? Number(rest.old_price) : null,
+        flash_sale_price: rest.flash_sale_price != null ? Number(rest.flash_sale_price) : null,
         category: serializeCategoryWithParent(category),
         brand: brand ? { ...brand, brand_id: brand.brand_id.toString() } : null
     };
@@ -361,6 +364,11 @@ async function create(req, res) {
         });
     }
 
+    const priceNumCreate = Number(price);
+    if (!Number.isFinite(priceNumCreate) || priceNumCreate < 0) {
+        return res.status(400).json({ message: "Giá bán không hợp lệ" });
+    }
+
     try {
         await assertLeafCategory(category_id);
     } catch (e) {
@@ -373,7 +381,7 @@ async function create(req, res) {
             brand_id: BigInt(brand_id),
             product_name,
             sku,
-            price,
+            price: priceNumCreate,
             stock_quantity: stock_quantity ?? 0,
             warranty_months: warranty_months ?? 0,
             description: description || null,
@@ -487,6 +495,21 @@ async function update(req, res) {
         data.category_id = next;
     }
     if (req.body.brand_id !== undefined) data.brand_id = BigInt(req.body.brand_id);
+
+    if (data.price !== undefined) {
+        const n = Number(data.price);
+        if (!Number.isFinite(n) || n < 0) {
+            return res.status(400).json({ message: "Giá bán không hợp lệ" });
+        }
+        data.price = n;
+    }
+    if (data.old_price !== undefined && data.old_price !== null) {
+        const n = Number(data.old_price);
+        if (!Number.isFinite(n) || n < 0) {
+            return res.status(400).json({ message: "Giá niêm yết không hợp lệ" });
+        }
+        data.old_price = n;
+    }
 
     await prisma.product.update({ where: { product_id: id }, data });
     const full = await prisma.product.findUnique({

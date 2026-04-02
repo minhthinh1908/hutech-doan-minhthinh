@@ -1,4 +1,4 @@
-# Website thương mại điện tử — Bình Định Tools
+# Website thương mại điện tử — E-commerce Tools
 
 Đồ án xây dựng **hệ thống bán hàng trực tuyến** (e-commerce) cho cửa hàng công cụ — gồm **giao diện khách hàng**, **quản trị (admin)** và **API REST** kết nối cơ sở dữ liệu quan hệ. Dự án áp dụng kiến trúc **tách frontend / backend**, xác thực **JWT** (access + refresh token), quản lý dữ liệu bằng **Prisma ORM** trên **PostgreSQL**.
 

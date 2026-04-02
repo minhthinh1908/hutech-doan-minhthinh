@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { resolvePublicImageUrl } from "../utils/mapProduct.js";
 import BuyerSidebar from "../components/BuyerSidebar.jsx";
-import "./BuyerPages.css";
 
 function money(n) {
   return Number(n || 0).toLocaleString("vi-VN");
@@ -164,7 +164,8 @@ export default function CartPage() {
           {items.map((line) => {
             const p = line.product;
             const name = p?.product_name || "Sản phẩm";
-            const img = p?.image_url || p?.thumbnail_url || null;
+            const img =
+              resolvePublicImageUrl(p?.image_url || p?.thumbnail_url) || null;
             const inactive = p && p.status !== "active";
             const catBrand = [p?.category?.category_name, p?.brand?.brand_name].filter(Boolean).join(" · ");
             return (

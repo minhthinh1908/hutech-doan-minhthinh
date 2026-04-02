@@ -1,0 +1,21 @@
+---
+description: Đồng nhất giao diện buyer và admin — token, Tailwind, PrimeReact, CSS global
+globs: frontend/src/**/*.{jsx,css}
+alwaysApply: false
+---
+
+# UI consistency (user + admin)
+
+Khi chỉnh file khớp `globs`, **đọc skill** `ui-consistency` tại `.cursor/skills/ui-consistency/SKILL.md` trước khi refactor lớn hoặc thêm màn mới.
+
+## Bắt buộc
+
+- Màu/spacing/font: ưu tiên biến `:root` trong `frontend/src/index.css` (`--bd-*`, `--font`). Không thêm hex trùng ý nghĩa với token đã có.
+- Accent thương hiệu: dùng `frontend/src/utils/brandAccent.js` + `frontend/src/styles/brandAccent.css`, không nhân bản palette.
+- Một tính năng tương đương ở buyer và admin (vd. danh sách, form): **cùng hierarchy tiêu đề**, **cùng kiểu nút primary**, **cùng pattern loading/empty/error** với trang đã có trong repo.
+- Ưu tiên **reuse** component/CSS pattern hiện có; nếu tạo pattern mới, ghi rõ trong PR/commit và (nếu cần) bổ sung vào `reference.md` của skill.
+
+## Tránh
+
+- Admin “theme riêng” (font/spacing/màu khác hệ buyer) trừ khi user yêu cầu rõ.
+- Hard-code màu một lần rải nhiều file thay vì token/class chung.

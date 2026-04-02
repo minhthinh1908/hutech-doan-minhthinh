@@ -1,6 +1,8 @@
-import "./StaticPage.css";
 
-export default function StaticPage({ title, children }) {
+export default function StaticPage({ title, children, htmlContent }) {
+  const fallback =
+    children ||
+    "Nội dung trang đang được cập nhật. Vui lòng quay lại sau hoặc liên hệ hotline.";
   return (
     <div className="static-page">
       <div className="static-page__hero">
@@ -9,10 +11,11 @@ export default function StaticPage({ title, children }) {
         </div>
       </div>
       <div className="container static-page__body">
-        <p className="static-page__lead">
-          {children ||
-            "Nội dung trang đang được cập nhật. Vui lòng quay lại sau hoặc liên hệ hotline."}
-        </p>
+        {htmlContent != null && String(htmlContent).trim() !== "" ? (
+          <div className="static-page__html" dangerouslySetInnerHTML={{ __html: htmlContent }} />
+        ) : (
+          <p className="static-page__lead">{fallback}</p>
+        )}
       </div>
     </div>
   );

@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet } from "../../api/client.js";
-import "./AdminPages.css";
+import { CoreCard, CoreSkeleton } from "../../components/ui/index.js";
+import useAdminToastNotices from "../../hooks/useAdminToastNotices.js";
 
 export default function AdminDashboard() {
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
+  useAdminToastNotices({ err, setErr });
 
   useEffect(() => {
     let cancelled = false;
@@ -14,7 +16,7 @@ export default function AdminDashboard() {
         const d = await apiGet("/admin/dashboard");
         if (!cancelled) setData(d);
       } catch (e) {
-        if (!cancelled) setErr(e.message || "Không tải được");
+        if (!cancelled) setErr(e.message || "Không tải được dữ liệu.");
       }
     })();
     return () => {
@@ -24,42 +26,44 @@ export default function AdminDashboard() {
 
   return (
     <div className="admin-page">
-      <h1>Bảng điều khiển</h1>
-      <p className="admin-page__muted">
+      <h1 className="admin-section-title">Bảng điều khiển</h1>
+      <p className="admin-lead mt-2">
         Quản lý sản phẩm, voucher và đơn hàng — dữ liệu hiển thị cho khách (guest) và buyer trên trang mua sắm.
       </p>
-      {err ? (
-        <p className="admin-msg admin-msg--err" role="alert">
-          {err}
-        </p>
-      ) : null}
       {data ? (
-        <div className="admin-stats">
-          <div className="admin-stat">
-            <div className="admin-stat__val">{data.users}</div>
-            <div className="admin-stat__label">Tài khoản</div>
-          </div>
-          <div className="admin-stat">
-            <div className="admin-stat__val">{data.products}</div>
-            <div className="admin-stat__label">Sản phẩm</div>
-          </div>
-          <div className="admin-stat">
-            <div className="admin-stat__val">{data.orders}</div>
-            <div className="admin-stat__label">Đơn hàng</div>
-          </div>
-          <div className="admin-stat">
-            <div className="admin-stat__val">{data.pending_orders}</div>
-            <div className="admin-stat__label">Chờ xử lý</div>
-          </div>
-          <div className="admin-stat">
-            <div className="admin-stat__val">{data.active_vouchers}</div>
-            <div className="admin-stat__label">Voucher hoạt động</div>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+          <CoreCard className="text-center">
+            <div className="text-3xl font-extrabold">{data.users}</div>
+            <div className="text-xs uppercase tracking-wide mt-1 text-[#666]">Tài khoản</div>
+          </CoreCard>
+          <CoreCard className="text-center">
+            <div className="text-3xl font-extrabold">{data.products}</div>
+            <div className="text-xs uppercase tracking-wide mt-1 text-[#666]">Sản phẩm</div>
+          </CoreCard>
+          <CoreCard className="text-center">
+            <div className="text-3xl font-extrabold">{data.orders}</div>
+            <div className="text-xs uppercase tracking-wide mt-1 text-[#666]">Đơn hàng</div>
+          </CoreCard>
+          <CoreCard className="text-center">
+            <div className="text-3xl font-extrabold">{data.pending_orders}</div>
+            <div className="text-xs uppercase tracking-wide mt-1 text-[#666]">Chờ xử lý</div>
+          </CoreCard>
+          <CoreCard className="text-center">
+            <div className="text-3xl font-extrabold">{data.active_vouchers}</div>
+            <div className="text-xs uppercase tracking-wide mt-1 text-[#666]">Voucher hoạt động</div>
+          </CoreCard>
         </div>
       ) : !err ? (
-        <p>Đang tải…</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <CoreCard key={i} className="text-center">
+              <CoreSkeleton width="60%" height="2.1rem" className="mx-auto" />
+              <CoreSkeleton width="70%" height="0.8rem" className="mt-3 mx-auto" />
+            </CoreCard>
+          ))}
+        </div>
       ) : null}
-      <p className="admin-page__muted">
+      <p className="text-sm text-[#666] mt-4">
         <Link to="/admin/san-pham">Đăng máy / sản phẩm</Link> · <Link to="/admin/voucher">Tạo mã giảm giá</Link> ·{" "}
         <Link to="/">Trang chủ khách</Link>
       </p>

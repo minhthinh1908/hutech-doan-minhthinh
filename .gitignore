@@ -43,3 +43,10 @@ coverage/
 backend/node_modules
 frontend/node_modules
 /.vscode
+
+# Cursor — chỉ track skills & rules dùng chung team (còn lại trong .cursor vẫn ignore)
+/.cursor/*
+!/.cursor/skills/
+!/.cursor/skills/**
+!/.cursor/rules/
+!/.cursor/rules/**

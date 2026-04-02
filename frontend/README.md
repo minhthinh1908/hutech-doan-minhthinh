@@ -1,4 +1,4 @@
-# Frontend — BINH DINH TOOLS (demo giao diện)
+# Frontend — E-COMMERCE TOOLS (demo giao diện)
 
 Giao diện React + Vite, tông vàng / đen / trắng giống trang thương mại dụng cụ.
 
@@ -37,7 +37,7 @@ Proxy đã cấu trong `vite.config.js`: request tới `/api/*` chuyển tới `
 
 ## Giao diện (cập nhật)
 
-- Logo: khung nhà + máy khoan (`components/LogoMark.jsx`), chữ BINH DINH TOOLS.
+- Logo: khung nhà + máy khoan (`components/LogoMark.jsx`), chữ E-commerce / TOOLS.
 - Hotline: nhãn **Hotline tư vấn**, icon điện thoại trong vòng tròn vàng, số **0336 634 677** / **0981 278 914**.
 - Nút **Dịch Vụ Bảo Hành** nổi: kèm icon tai nghe.
 - Banner chính: chữ DEWALT góc phải, giá vàng, chip 20V MAX / BRUSHLESS / XR, lớp vân gỗ nhẹ.

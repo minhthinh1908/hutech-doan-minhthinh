@@ -4,7 +4,6 @@ import { apiGet } from "../api/client.js";
 import { mapApiProductToCard } from "../utils/mapProduct.js";
 import { DEMO_PRODUCTS } from "../data/demoProducts.js";
 import ProductCard from "../components/ProductCard.jsx";
-import "./ProductBrowsePage.css";
 
 export default function ProductBrowsePage() {
   const [searchParams, setSearchParams] = useSearchParams();

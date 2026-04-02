@@ -387,7 +387,7 @@ model RefundRequest {
 /// Chân trang website — một bản ghi (id = 1), chỉnh trong Admin
 model SiteFooter {
   id                     Int      @id @default(1)
-  site_name              String   @default("BÌNH ĐỊNH TOOLS")
+  site_name              String   @default("E-COMMERCE TOOLS")
   branch1_label          String?
   branch1_phone          String?
   branch1_address        String?  @db.Text
@@ -405,4 +405,15 @@ model SiteFooter {
   updated_at             DateTime @updatedAt
 
   @@map("site_footer")
+}
+
+/// Nội dung trang tĩnh: Giới thiệu / Dịch vụ / Tin tức — chỉnh từ Admin
+model CmsPage {
+  cms_page_id BigInt   @id @default(autoincrement())
+  slug        String   @unique
+  title       String
+  body_html   String   @db.Text
+  updated_at  DateTime @updatedAt
+
+  @@map("cms_pages")
 }

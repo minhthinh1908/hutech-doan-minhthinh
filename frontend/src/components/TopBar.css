@@ -39,7 +39,7 @@
 .top-bar__marquee-track {
   display: flex;
   width: max-content;
-  animation: top-bar-marquee 22s linear infinite;
+  animation: top-bar-marquee 28s linear infinite;
 }
 
 .top-bar__marquee-segment {

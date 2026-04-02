@@ -35,11 +35,8 @@
 }
 
 .cat-nav__trigger:hover {
-  filter: brightness(1.05);
-  box-shadow:
-    0 0 0 2px rgba(0, 0, 0, 0.15),
-    0 0 16px rgba(255, 234, 0, 0.65),
-    0 0 28px rgba(255, 100, 0, 0.35);
+  filter: brightness(1.03);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 .cat-nav__trigger:focus-visible {
@@ -47,99 +44,50 @@
   outline-offset: 2px;
 }
 
-/* Viền LED chạy quanh cả khu 5 thương hiệu */
 .cat-nav__brands-led-wrap {
   flex: 1;
   min-width: 0;
-  padding: 3px;
+  padding: 0.2rem;
   border-radius: 12px;
-  background: linear-gradient(
-    90deg,
-    #ff0080,
-    #00e5ff,
-    #ffea00,
-    #b400ff,
-    #00ff88,
-    #ff0080
-  );
-  background-size: 400% 100%;
-  animation: cat-nav-brands-strip-flow 5s linear infinite;
+  border: 1px solid rgba(255, 204, 0, 0.45);
+  border-top: 2px solid rgba(255, 214, 60, 0.85);
+  background: linear-gradient(180deg, #161616 0%, #080808 100%);
   box-shadow:
-    0 0 18px rgba(255, 200, 0, 0.35),
-    0 0 28px rgba(0, 229, 255, 0.2);
-}
-
-@keyframes cat-nav-brands-strip-flow {
-  0% {
-    background-position: 0% 50%;
-  }
-  100% {
-    background-position: 400% 50%;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cat-nav__brands-led-wrap {
-    animation: none;
-    background: linear-gradient(135deg, #ffcc00, #00c8ff, #ff4080);
-  }
+    inset 0 1px 0 rgba(255, 220, 80, 0.12),
+    0 0 20px rgba(255, 200, 0, 0.08),
+    0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
 .cat-nav__brands {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.85rem;
   flex: 1;
   min-width: 0;
   overflow-x: auto;
-  padding: 0.4rem 0.55rem 0.45rem;
-  border-radius: 9px;
-  background: linear-gradient(180deg, #0f0f0f 0%, #080808 100%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.55rem 0.65rem 0.55rem 0.5rem;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #101010 0%, #050505 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  scrollbar-width: thin;
 }
 
 .cat-nav__brands-label {
-  font-size: 0.75rem;
+  flex-shrink: 0;
+  font-size: 0.74rem;
   font-weight: 800;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #ffdd33;
+  color: var(--bd-black);
+  background: var(--bd-yellow);
   white-space: nowrap;
   line-height: 1.2;
   -webkit-font-smoothing: antialiased;
-  text-shadow:
-    0 0 6px rgba(255, 220, 60, 1),
-    0 0 14px rgba(255, 160, 0, 0.85),
-    0 0 22px rgba(255, 80, 0, 0.55),
-    0 0 32px rgba(255, 0, 128, 0.25),
-    0 1px 0 rgba(0, 0, 0, 0.9);
-  animation: cat-nav-label-led 2.8s ease-in-out infinite;
-}
-
-@keyframes cat-nav-label-led {
-  0%,
-  100% {
-    color: #ffdd33;
-    text-shadow:
-      0 0 6px rgba(255, 220, 60, 1),
-      0 0 14px rgba(255, 160, 0, 0.85),
-      0 0 24px rgba(0, 229, 255, 0.35);
-  }
-  50% {
-    color: #fff176;
-    text-shadow:
-      0 0 8px rgba(255, 255, 200, 1),
-      0 0 18px rgba(0, 255, 200, 0.55),
-      0 0 28px rgba(255, 0, 200, 0.35);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cat-nav__brands-label {
-    animation: none;
-    color: var(--bd-yellow);
-    text-shadow: 0 0 10px rgba(255, 204, 0, 0.6);
-  }
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(0, 0, 0, 0.12);
 }
 
 .cat-nav__brand-list {
@@ -147,65 +95,44 @@
   margin: 0;
   padding: 0;
   display: flex;
-  gap: 0.5rem;
-  align-items: center;
+  gap: 0.65rem;
+  align-items: stretch;
 }
 
 .cat-nav__brand {
   display: block;
   padding: 0;
-  min-width: 68px;
+  min-width: 76px;
   border: none;
   cursor: pointer;
   background: transparent;
   font: inherit;
+  position: relative;
 }
 
-/* Viền LED chạy màu quanh thương hiệu */
 .cat-nav__brand--led {
-  border-radius: 6px;
-  padding: 2px;
-  background: linear-gradient(
-    90deg,
-    #ff0080,
-    #00e5ff,
-    #ffea00,
-    #b400ff,
-    #00ff88,
-    #ff0080
-  );
-  background-size: 400% 100%;
-  animation: cat-nav-led-flow 4.5s linear infinite;
-  box-shadow:
-    0 0 10px rgba(0, 229, 255, 0.35),
-    0 0 18px rgba(255, 0, 128, 0.2);
-}
-
-@keyframes cat-nav-led-flow {
-  0% {
-    background-position: 0% 50%;
-    filter: hue-rotate(0deg) brightness(1.05);
-  }
-  50% {
-    filter: hue-rotate(30deg) brightness(1.12);
-  }
-  100% {
-    background-position: 400% 50%;
-    filter: hue-rotate(0deg) brightness(1.05);
-  }
+  border-radius: 11px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .cat-nav__brand-inner {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  justify-content: center;
+  gap: 3px;
   background: linear-gradient(180deg, #1c1c1c 0%, #0d0d0d 100%);
   color: var(--bd-white);
-  padding: 0.3rem 0.5rem;
-  border-radius: 4px;
-  min-height: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  min-height: 52px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition:
+    box-shadow 0.2s ease,
+    color 0.15s ease;
 }
 
 .cat-nav__brand--led:hover .cat-nav__brand-inner {
@@ -213,15 +140,11 @@
 }
 
 .cat-nav__brand--led:hover {
-  animation-duration: 2.2s;
-  box-shadow:
-    0 0 14px rgba(255, 234, 0, 0.45),
-    0 0 24px rgba(0, 229, 255, 0.35);
+  background: rgba(255, 255, 255, 0.18);
 }
 
-/* Trang chủ ?brand= — viền vàng ô đang chọn (giống mẫu 5 logo) */
 .cat-nav__brand--active.cat-nav__brand--led {
-  animation-duration: 2.2s;
+  background: rgba(255, 204, 0, 0.22);
 }
 
 .cat-nav__brand-inner--active {
@@ -232,28 +155,25 @@
     inset 0 0 0 1px rgba(255, 221, 51, 0.35);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .cat-nav__brand--led {
-    animation: none;
-    background: linear-gradient(90deg, #ffcc00, #00c8ff);
-  }
-}
 
 .cat-nav__brand-abbr {
   font-weight: 800;
-  font-size: 0.875rem;
+  font-size: 0.92rem;
   letter-spacing: 0.02em;
   line-height: 1.1;
 }
 
 .cat-nav__brand-name {
-  font-weight: 600;
-  font-size: 0.625rem;
-  letter-spacing: 0.04em;
+  font-weight: 700;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  opacity: 0.92;
+  opacity: 0.95;
   white-space: nowrap;
   line-height: 1.15;
+  max-width: 92px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (max-width: 640px) {

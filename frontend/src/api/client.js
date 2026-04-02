@@ -9,6 +9,10 @@ function getAuthHeaders() {
   return headers;
 }
 
+function safeJsonStringify(value) {
+  return JSON.stringify(value, (_, v) => (typeof v === "bigint" ? v.toString() : v));
+}
+
 export async function apiGet(path, params = {}) {
   const url = new URL(`/api${path}`, window.location.origin);
   Object.entries(params).forEach(([k, v]) => {
@@ -47,6 +51,12 @@ export async function apiUploadFile(path, file, { auth = true } = {}) {
     data = text;
   }
   if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error("Hết phiên đăng nhập — đăng nhập lại Admin rồi tải ảnh.");
+    }
+    if (res.status === 403) {
+      throw new Error("Chỉ tài khoản quản trị mới tải ảnh được.");
+    }
     const msg = data?.message || res.statusText || "Request failed";
     throw new Error(msg);
   }
@@ -59,7 +69,7 @@ export async function apiPost(path, body, { auth = false } = {}) {
   const res = await fetch(`/api${path}`, {
     method: "POST",
     headers,
-    body: JSON.stringify(body)
+    body: safeJsonStringify(body)
   });
   const text = await res.text();
   let data;
@@ -81,7 +91,7 @@ export async function apiPatch(path, body, { auth = true } = {}) {
   const res = await fetch(`/api${path}`, {
     method: "PATCH",
     headers,
-    body: JSON.stringify(body ?? {})
+    body: safeJsonStringify(body ?? {})
   });
   const text = await res.text();
   let data;
@@ -103,7 +113,7 @@ export async function apiPut(path, body, { auth = true } = {}) {
   const res = await fetch(`/api${path}`, {
     method: "PUT",
     headers,
-    body: JSON.stringify(body ?? {})
+    body: safeJsonStringify(body ?? {})
   });
   const text = await res.text();
   let data;

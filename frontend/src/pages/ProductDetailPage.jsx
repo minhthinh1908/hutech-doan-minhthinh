@@ -6,7 +6,6 @@ import { mapApiProductToCard } from "../utils/mapProduct.js";
 import { findDemoProduct, DEMO_PRODUCTS } from "../data/demoProducts.js";
 import { addRecentlyViewed } from "../utils/recentlyViewed.js";
 import ProductCard from "../components/ProductCard.jsx";
-import "./ProductDetailPage.css";
 
 export default function ProductDetailPage() {
   const { id } = useParams();

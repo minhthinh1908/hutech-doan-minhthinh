@@ -1,5 +1,5 @@
 /**
- * Logo dọc: nhà vàng + khoan & tia zigzag (khối trắng) — chữ Bình Định / TOOLS phía dưới
+ * Logo dọc: nhà vàng + khoan & tia zigzag (khối trắng) — chữ E-commerce / TOOLS phía dưới
  */
 export default function LogoMark() {
   return (
@@ -29,7 +29,7 @@ export default function LogoMark() {
         />
       </svg>
       <div className="logo-compact__words">
-        <span className="logo-compact__line1">Bình Định</span>
+        <span className="logo-compact__line1">E-commerce</span>
         <span className="logo-compact__line2">TOOLS</span>
       </div>
     </div>

@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard.jsx";
-import HomeFeaturedPromo from "../components/HomeFeaturedPromo.jsx";
+import HomeFeaturedShowcase from "../components/HomeFeaturedShowcase.jsx";
 import HomeRecommendations from "../components/HomeRecommendations.jsx";
 import RecentlyViewedStrip from "../components/RecentlyViewedStrip.jsx";
 import { apiGet } from "../api/client.js";
 import { mapApiProductToCard } from "../utils/mapProduct.js";
 import { buildSlugToBrandId, brandToUrlSlug, resolveBrandParam } from "../utils/brandSlug.js";
+import { getBrandAccentKey } from "../utils/brandAccent.js";
 import { buildDisplayOrderBrandIds, orderedBrandIdsForRoot } from "../utils/brandByCategory.js";
 import { buildHeroSequence } from "../data/homeBrandShowcase.js";
 import { MEGA_COLS, splitIntoColumns } from "../utils/categoryMega.js";
-import "./HomePage.css";
 
 const SIDEBAR_ITEMS = [
   "MÁY MÓC CẦM TAY",
@@ -30,7 +30,6 @@ export default function HomePage() {
   /** brand_id (chuỗi) — đồng bộ với Admin / GET /brands */
   const [selectedBrandId, setSelectedBrandId] = useState("");
   const [heroFlatIndex, setHeroFlatIndex] = useState(0);
-  const [heroPaused, setHeroPaused] = useState(false);
   const carouselRef = useRef(null);
 
   const [brands, setBrands] = useState([]);
@@ -70,12 +69,12 @@ export default function HomePage() {
   );
 
   useEffect(() => {
-    if (heroPaused || heroFlatLen < 2) return undefined;
+    if (heroFlatLen < 2) return undefined;
     const t = window.setInterval(() => {
       setHeroFlatIndex((i) => (i + 1) % heroFlatLen);
     }, HERO_SHOWCASE_INTERVAL_MS);
     return () => window.clearInterval(t);
-  }, [heroPaused, heroFlatLen]);
+  }, [heroFlatLen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -282,7 +281,7 @@ export default function HomePage() {
     (async () => {
       try {
         const [feat, flash] = await Promise.all([
-          apiGet("/products", { status: "active", limit: 8, is_featured: "true" }),
+          apiGet("/products", { status: "active", limit: 24, is_featured: "true" }),
           apiGet("/products", { status: "active", limit: 24, flash_sale_active: "true" })
         ]);
         if (cancelled) return;
@@ -391,11 +390,10 @@ export default function HomePage() {
           ) : null}
         </div>
 
-        <div
-          className="home__hero-showcase"
-          onMouseEnter={() => setHeroPaused(true)}
-          onMouseLeave={() => setHeroPaused(false)}
-        >
+        {!loadPromoBlocks && featuredRaw.length > 0 ? (
+          <HomeFeaturedShowcase products={featuredRaw} />
+        ) : (
+        <div className="home__hero-showcase">
           <section className="home__banner-main" aria-label="Banner chính">
             <div
               className="home__hero-carousel home__banner-card home__banner-card--large home__banner-card--wood"
@@ -499,9 +497,8 @@ export default function HomePage() {
             ) : null}
           </div>
         </div>
+        )}
       </div>
-
-      {!loadPromoBlocks && featuredRaw.length > 0 ? <HomeFeaturedPromo products={featuredRaw} /> : null}
 
       {!loadPromoBlocks && flashProducts.length > 0 ? (
         <section className="home__flash" aria-labelledby="home-flash-heading">
@@ -528,28 +525,24 @@ export default function HomePage() {
             Sản phẩm nổi bật theo tab
           </h2>
           <div className="home__tabs" role="tablist">
-            <div className="home__tab-led">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === "bestseller"}
-                className={`home__tab ${tab === "bestseller" ? "home__tab--active" : "home__tab--inactive"}`}
-                onClick={() => setTab("bestseller")}
-              >
-                SẢN PHẨM BÁN CHẠY
-              </button>
-            </div>
-            <div className="home__tab-led">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === "new"}
-                className={`home__tab ${tab === "new" ? "home__tab--active" : "home__tab--inactive"}`}
-                onClick={() => setTab("new")}
-              >
-                SẢN PHẨM MỚI
-              </button>
-            </div>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "bestseller"}
+              className={`home__tab ${tab === "bestseller" ? "home__tab--active" : "home__tab--inactive"}`}
+              onClick={() => setTab("bestseller")}
+            >
+              Sản phẩm bán chạy
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "new"}
+              className={`home__tab ${tab === "new" ? "home__tab--active" : "home__tab--inactive"}`}
+              onClick={() => setTab("new")}
+            >
+              Sản phẩm mới
+            </button>
           </div>
 
           <div className="home__carousel-wrap">
@@ -596,22 +589,23 @@ export default function HomePage() {
         <div className="container">
           <h2 className="home__brand-title">
             <span className="home__brand-accent" aria-hidden />
-            Thương Hiệu
+            Thương hiệu
           </h2>
 
-          <div className="home__brand-filters-led" role="presentation">
+          <div className="home__brand-filters-wrap" role="presentation">
             <div className="home__brand-filters" role="tablist" aria-label="Lọc theo thương hiệu">
               {visibleBrandIds.map((bid) => {
                 const b = brands.find((x) => String(x.brand_id) === String(bid));
                 if (!b) return null;
                 const active = String(selectedBrandId) === String(bid);
+                const accent = getBrandAccentKey(b.brand_name);
                 return (
                   <button
                     key={bid}
                     type="button"
                     role="tab"
                     aria-selected={active}
-                    className={`home__brand-chip ${active ? "home__brand-chip--active home__brand-chip--glow" : ""}`}
+                    className={`home__brand-chip home__brand-chip--accent-${accent} ${active ? "home__brand-chip--active" : ""}`}
                     onClick={() => selectBrand(bid)}
                   >
                     {b.brand_name}

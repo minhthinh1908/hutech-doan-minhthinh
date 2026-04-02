@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiGet } from "../../api/client.js";
-import "./AdminPages.css";
-import "./AdminReports.css";
+import { CoreBadge, CoreCard, CoreChart, CoreFilterActions, CoreFilterButtons, CoreSpinner, CoreTable } from "../../components/ui/index.js";
+import useAdminToastNotices from "../../hooks/useAdminToastNotices.js";
 
 function money(n) {
   const x = Number(n);
@@ -71,6 +71,12 @@ const MAIN_PRESETS = [
   { key: "90d", label: "90 ngày" },
   { key: "ytd", label: "Năm nay" }
 ];
+const PRESET_FILTER_OPTIONS = [...MAIN_PRESETS, { key: "custom", label: "Tùy chỉnh" }];
+const REVENUE_GROUP_OPTIONS = [
+  { key: "day", label: "Theo ngày" },
+  { key: "month", label: "Theo tháng" }
+];
+const FILTER_BUTTON_CLASS = "!px-3 !py-1.5 text-sm";
 
 function formatBucket(bucket, groupBy) {
   if (bucket == null) return "—";
@@ -101,6 +107,7 @@ export default function AdminReports() {
   const [top, setTop] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  useAdminToastNotices({ err, setErr });
 
   const rangeForPreset = useMemo(() => {
     if (preset === "custom") return null;
@@ -195,255 +202,263 @@ export default function AdminReports() {
 
   const kpis = summary?.kpis;
 
+  const revenueChartData = useMemo(() => {
+    const labels = revenueRows.map((row) => formatBucket(row.bucket, revenue?.groupBy));
+    const values = revenueRows.map((row) => Number(row.revenue || 0));
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Doanh thu",
+          data: values,
+          backgroundColor: "rgba(59, 130, 246, 0.85)",
+          borderColor: "rgba(29, 78, 216, 1)",
+          borderWidth: 1
+        }
+      ]
+    };
+  }, [revenueRows, revenue?.groupBy]);
+
+  const revenueChartOptions = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${money(ctx.parsed.y)}đ`
+          }
+        }
+      },
+      scales: {
+        y: {
+          ticks: {
+            callback: (value) => `${money(value)}đ`
+          }
+        }
+      }
+    }),
+    []
+  );
+
   return (
-    <div className="admin-page admin-report">
-      <h1>Báo cáo &amp; thống kê</h1>
-      <p className="admin-page__muted">
+    <div className="admin-page">
+      <h1 className="admin-section-title">Báo cáo &amp; thống kê</h1>
+      <p className="admin-lead mt-2 max-w-4xl">
         Tổng quan bán hàng theo kỳ: doanh thu (đơn đã thanh toán), đơn hàng, khách, sản phẩm, voucher và hậu mãi. Điều chỉnh
         khoảng thời gian để lọc toàn bộ báo cáo bên dưới.
       </p>
 
-      <aside className="admin-report__examples" aria-label="Ví dụ đọc số liệu">
-        <p className="admin-report__examples-title">Ví dụ đọc số liệu</p>
-        <ul className="admin-report__examples-list">
-          <li>
-            <strong>Doanh thu = 0đ nhưng «Đơn hàng» &gt; 0:</strong> thường do đơn trong kỳ chưa ghi nhận thanh toán (trạng thái
-            khác paid/success). Ví dụ đơn COD mới đặt còn unpaid — cập nhật thanh toán ở mục Đơn hàng thì doanh thu mới tính.
-          </li>
-          <li>
-            <strong>Đơn hàng (trong kỳ):</strong> mọi trạng thái giao hàng, lọc theo ngày đặt — khác với doanh thu chỉ lấy đơn đã
-            thanh toán.
-          </li>
-          <li>
-            <strong>Khách hàng:</strong> số lớn là tổng tài khoản đăng ký; dòng nhỏ là bao nhiêu người có ít nhất một đơn trong
-            kỳ đang lọc.
-          </li>
-        </ul>
-      </aside>
+      <CoreCard className="mt-4">
+        <aside aria-label="Ví dụ đọc số liệu">
+          <div className="text-xs font-extrabold uppercase tracking-wide text-[#1d4ed8] mb-2">Ví dụ đọc số liệu</div>
+          <ul className="text-sm text-[#4b5563] list-disc pl-5 space-y-2">
+            <li>
+              <strong>Doanh thu = 0đ nhưng «Đơn hàng» &gt; 0:</strong> thường do đơn trong kỳ chưa ghi nhận thanh toán (trạng thái khác
+              paid/success). Ví dụ đơn COD mới đặt còn unpaid — cập nhật thanh toán ở mục Đơn hàng thì doanh thu mới tính.
+            </li>
+            <li>
+              <strong>Đơn hàng (trong kỳ):</strong> mọi trạng thái giao hàng, lọc theo ngày đặt — khác với doanh thu chỉ lấy đơn đã
+              thanh toán.
+            </li>
+            <li>
+              <strong>Khách hàng:</strong> số lớn là tổng tài khoản đăng ký; dòng nhỏ là bao nhiêu người có ít nhất một đơn trong kỳ
+              đang lọc.
+            </li>
+          </ul>
+        </aside>
+      </CoreCard>
 
-      <div className="admin-report__toolbar">
-        <div className="admin-report__toolbar-group">
-          <label>Khoảng thời gian</label>
-          <div className="admin-report__preset-row">
-            {MAIN_PRESETS.map((p) => (
-              <button
-                key={p.key}
-                type="button"
-                className={`admin-report__preset-btn${preset === p.key ? " admin-report__preset-btn--active" : ""}`}
-                onClick={() => handlePreset(p.key)}
-              >
-                {p.label}
-              </button>
-            ))}
-            <button
-              type="button"
-              className={`admin-report__preset-btn${preset === "custom" ? " admin-report__preset-btn--active" : ""}`}
-              onClick={goCustomMode}
-            >
-              Tùy chỉnh
-            </button>
+      <CoreCard className="mt-4">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 xl:items-end">
+          <div className="min-w-0">
+            <div className="text-xs font-extrabold uppercase tracking-wide text-[#666666] mb-2">Khoảng thời gian</div>
+            <CoreFilterButtons
+              options={PRESET_FILTER_OPTIONS}
+              activeValue={preset}
+              buttonClassName={FILTER_BUTTON_CLASS}
+              onChange={(value) => (value === "custom" ? goCustomMode() : handlePreset(value))}
+            />
           </div>
-        </div>
-        <div className="admin-report__toolbar-group">
-          <label>Từ ngày — đến ngày</label>
-          <div className="admin-report__date-inputs">
-            <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
-            <span className="admin-page__muted">—</span>
-            <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
-            <button type="button" className="admin-report__apply" onClick={applyCustomRange}>
-              Áp dụng
-            </button>
-          </div>
-        </div>
-        <div className="admin-report__toolbar-group">
-          <label>Doanh thu theo</label>
-          <div className="admin-report__chart-mode">
-            <button
-              type="button"
-              className={`admin-report__mini-btn${chartGroupBy === "day" ? " admin-report__mini-btn--on" : ""}`}
-              onClick={() => setChartGroupBy("day")}
-            >
-              Theo ngày
-            </button>
-            <button
-              type="button"
-              className={`admin-report__mini-btn${chartGroupBy === "month" ? " admin-report__mini-btn--on" : ""}`}
-              onClick={() => setChartGroupBy("month")}
-            >
-              Theo tháng
-            </button>
-          </div>
-        </div>
-      </div>
 
-      {err ? (
-        <p className="admin-msg admin-msg--err" role="alert">
-          {err}
-        </p>
-      ) : null}
+          <div className="min-w-0">
+            <div className="text-xs font-extrabold uppercase tracking-wide text-[#666666] mb-2">Từ ngày — đến ngày</div>
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                type="date"
+                className="admin-form-control min-w-[180px]"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+              />
+              <span className="text-[#666666]">—</span>
+              <input
+                type="date"
+                className="admin-form-control min-w-[180px]"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+              />
+              <CoreFilterActions mode="applyOnly" onApply={applyCustomRange} buttonClassName={FILTER_BUTTON_CLASS} />
+            </div>
+          </div>
+
+          <div className="min-w-0">
+            <div className="text-xs font-extrabold uppercase tracking-wide text-[#666666] mb-2">Doanh thu theo</div>
+            <CoreFilterButtons
+              options={REVENUE_GROUP_OPTIONS}
+              activeValue={chartGroupBy}
+              buttonClassName={FILTER_BUTTON_CLASS}
+              onChange={setChartGroupBy}
+            />
+          </div>
+        </div>
+      </CoreCard>
 
       {loading ? (
-        <div className="admin-report__loading">
-          <span className="admin-report__spinner" aria-hidden />
-          Đang tải số liệu…
+        <div className="flex items-center justify-center gap-3 py-10">
+          <CoreSpinner />
+          <span className="text-[#666666] font-semibold">Đang tải số liệu…</span>
         </div>
       ) : (
-        <>
-          <section className="admin-report__kpis" aria-label="Chỉ số tổng quan">
-            <article className="admin-report__kpi admin-report__kpi--revenue">
-              <p className="admin-report__kpi-label">Doanh thu (kỳ đang chọn)</p>
-              <p className="admin-report__kpi-value">{money(kpis?.revenue)}đ</p>
-              <p className="admin-report__kpi-sub">Chỉ tính đơn có thanh toán paid / success.</p>
-            </article>
-            <article className="admin-report__kpi admin-report__kpi--orders">
-              <p className="admin-report__kpi-label">Đơn hàng (trong kỳ)</p>
-              <p className="admin-report__kpi-value">{money(kpis?.orders_count)}</p>
-              <p className="admin-report__kpi-sub">Mọi trạng thái đơn, theo ngày đặt.</p>
-            </article>
-            <article className="admin-report__kpi admin-report__kpi--customers">
-              <p className="admin-report__kpi-label">Khách hàng</p>
-              <p className="admin-report__kpi-value">{money(kpis?.customers_registered)}</p>
-              <p className="admin-report__kpi-sub">
-                Tài khoản đăng ký (tổng). Trong kỳ có <strong>{money(kpis?.buyers_in_period)}</strong> người đặt đơn.
-              </p>
-            </article>
-            <article className="admin-report__kpi admin-report__kpi--products">
-              <p className="admin-report__kpi-label">Sản phẩm (catalog)</p>
-              <p className="admin-report__kpi-value">{money(kpis?.products_catalog)}</p>
-              <p className="admin-report__kpi-sub">Tổng SKU trong hệ thống.</p>
-            </article>
+        <div className="mt-4 space-y-6">
+          <section aria-label="Chỉ số tổng quan">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <CoreCard>
+                <div className="text-xs font-extrabold uppercase tracking-wide text-[#666666]">Doanh thu</div>
+                <div className="text-2xl font-extrabold mt-1">{money(kpis?.revenue)}đ</div>
+                <div className="text-sm text-[#94a3b8] mt-1">Chỉ tính đơn có thanh toán paid / success.</div>
+              </CoreCard>
+              <CoreCard>
+                <div className="text-xs font-extrabold uppercase tracking-wide text-[#666666]">Đơn hàng</div>
+                <div className="text-2xl font-extrabold mt-1">{money(kpis?.orders_count)}</div>
+                <div className="text-sm text-[#94a3b8] mt-1">Mọi trạng thái đơn, theo ngày đặt.</div>
+              </CoreCard>
+              <CoreCard>
+                <div className="text-xs font-extrabold uppercase tracking-wide text-[#666666]">Khách hàng</div>
+                <div className="text-2xl font-extrabold mt-1">{money(kpis?.customers_registered)}</div>
+                <div className="text-sm text-[#94a3b8] mt-1">
+                  Trong kỳ có <strong>{money(kpis?.buyers_in_period)}</strong> người đặt đơn.
+                </div>
+              </CoreCard>
+              <CoreCard>
+                <div className="text-xs font-extrabold uppercase tracking-wide text-[#666666]">Sản phẩm (catalog)</div>
+                <div className="text-2xl font-extrabold mt-1">{money(kpis?.products_catalog)}</div>
+                <div className="text-sm text-[#94a3b8] mt-1">Tổng SKU trong hệ thống.</div>
+              </CoreCard>
+            </div>
           </section>
 
-          <section className="admin-report__section">
-            <div className="admin-report__section-head">
-              <h2 className="admin-report__section-title">Doanh thu theo thời gian</h2>
-              <p className="admin-report__section-hint">
-                {revenue?.groupBy === "month" ? "Nhóm theo tháng" : "Nhóm theo ngày"} — cùng kỳ với bộ lọc phía trên.
-              </p>
+          <section>
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-extrabold text-[#0f172a]">Doanh thu theo thời gian</h2>
+                <div className="text-sm text-[#666666] mt-1">
+                  {revenue?.groupBy === "month" ? "Nhóm theo tháng" : "Nhóm theo ngày"} — cùng kỳ với bộ lọc phía trên.
+                </div>
+              </div>
             </div>
+
             {revenueRows.length === 0 ? (
-              <div className="admin-report__empty">Không có dữ liệu doanh thu trong kỳ đã chọn.</div>
+              <div className="mt-4 rounded-xl border border-dashed border-[#E5E5E5] bg-[#F5F5F5] p-8 text-center text-[#666666]">
+                Không có dữ liệu doanh thu trong kỳ đã chọn.
+              </div>
             ) : (
-              <>
-                <div className="admin-report__chart" role="img" aria-label="Biểu đồ cột doanh thu">
-                  {revenueRows.map((row, i) => {
-                    const v = Number(row.revenue);
-                    const pct = maxRev > 0 ? Math.max(4, (v / maxRev) * 100) : 4;
-                    return (
-                      <div key={i} className="admin-report__bar-col">
-                        <div className="admin-report__bar-value">{money(row.revenue)}đ</div>
-                        <div className="admin-report__bar-area">
-                          <div className="admin-report__bar" style={{ height: `${pct}%` }} title={`${money(row.revenue)}đ`} />
-                        </div>
-                        <div className="admin-report__bar-caption">{formatBucket(row.bucket, revenue?.groupBy)}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="admin-table-wrap" style={{ marginTop: "1rem" }}>
-                  <table className="admin-table admin-table--compact">
-                    <thead>
-                      <tr>
-                        <th>Kỳ</th>
-                        <th>Doanh thu</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {revenueRows.map((row, i) => (
-                        <tr key={i}>
-                          <td>{formatBucket(row.bucket, revenue?.groupBy)}</td>
-                          <td>{money(row.revenue)}đ</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-          </section>
+              <div className="mt-4 space-y-4">
+                <CoreCard>
+                  <div className="h-[320px]">
+                    <CoreChart type="bar" data={revenueChartData} options={revenueChartOptions} />
+                  </div>
+                </CoreCard>
 
-          <section className="admin-report__section">
-            <div className="admin-report__section-head">
-              <h2 className="admin-report__section-title">Top sản phẩm bán chạy</h2>
-              <p className="admin-report__section-hint">Theo doanh thu dòng (đơn đã thanh toán) trong kỳ.</p>
-            </div>
-            {topRows.length === 0 ? (
-              <div className="admin-report__empty">Chưa có dữ liệu bán trong kỳ.</div>
-            ) : (
-              <div className="admin-table-wrap">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Tên sản phẩm</th>
-                      <th>Số lượng bán</th>
-                      <th>Doanh thu</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {topRows.map((row, i) => (
-                      <tr key={row.product_id ?? i}>
-                        <td>{i + 1}</td>
-                        <td>{row.product_name}</td>
-                        <td>{money(row.total_quantity)}</td>
-                        <td>{money(row.total_sales)}đ</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <CoreTable
+                  value={revenueRows}
+                  paginator={false}
+                  emptyMessage="Chưa có dữ liệu doanh thu trong kỳ."
+                  columns={[
+                    { key: "period", header: "Kỳ", body: (row) => formatBucket(row.bucket, revenue?.groupBy) },
+                    { key: "revenue", header: "Doanh thu", body: (row) => `${money(row.revenue)}đ` },
+                  ]}
+                />
               </div>
             )}
           </section>
 
-          <div className="admin-report__grid-2">
-            <section className="admin-report__panel">
-              <h3 className="admin-report__panel-title">Đơn hàng theo trạng thái (trong kỳ)</h3>
+          <section>
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-extrabold text-[#0f172a]">Top sản phẩm bán chạy</h2>
+                <div className="text-sm text-[#666666] mt-1">Theo doanh thu dòng (đơn đã thanh toán) trong kỳ.</div>
+              </div>
+            </div>
+
+            {topRows.length === 0 ? (
+              <div className="mt-4 rounded-xl border border-dashed border-[#E5E5E5] bg-[#F5F5F5] p-8 text-center text-[#666666]">
+                Chưa có dữ liệu bán trong kỳ.
+              </div>
+            ) : (
+              <CoreTable
+                value={topRows}
+                paginator={false}
+                emptyMessage="Chưa có dữ liệu bán trong kỳ."
+                columns={[
+                  { key: "idx", header: "#", body: (_, options) => options.rowIndex + 1 },
+                  { key: "name", header: "Tên sản phẩm", field: "product_name" },
+                  { key: "qty", header: "Số lượng bán", body: (row) => money(row.total_quantity) },
+                  { key: "sales", header: "Doanh thu", body: (row) => `${money(row.total_sales)}đ` },
+                ]}
+              />
+            )}
+          </section>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <CoreCard>
+              <div className="font-extrabold uppercase tracking-wide text-sm">Đơn hàng theo trạng thái (trong kỳ)</div>
               {statusEntries.length === 0 ? (
-                <div className="admin-report__empty" style={{ padding: "1rem" }}>
+                <div className="mt-3 rounded-xl border border-dashed border-[#E5E5E5] bg-[#F5F5F5] p-6 text-center text-[#666666]">
                   Không có đơn trong kỳ.
                 </div>
               ) : (
-                <div className="admin-report__status-list">
+                <div className="mt-3 space-y-2">
                   {statusEntries.map(([code, count]) => (
-                    <div key={code} className="admin-report__status-row">
-                      <span className="admin-report__status-name">{ORDER_STATUS_LABELS[code] || code}</span>
-                      <span className="admin-report__status-pill">{money(count)}</span>
+                    <div key={code} className="flex items-center justify-between gap-3">
+                      <span className="text-[#475569] font-semibold">{ORDER_STATUS_LABELS[code] || code}</span>
+                      <CoreBadge value={money(count)} tone="neutral" />
                     </div>
                   ))}
                 </div>
               )}
-            </section>
+            </CoreCard>
 
-            <section className="admin-report__panel">
-              <h3 className="admin-report__panel-title">Voucher</h3>
-              <div className="admin-report__voucher-row">
-                <span>Số lượt dùng (gắn đơn trong kỳ)</span>
-                <strong>{money(summary?.voucher?.usage_count)}</strong>
+            <CoreCard>
+              <div className="font-extrabold uppercase tracking-wide text-sm">Voucher</div>
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[#666666]">Số lượt dùng (gắn đơn trong kỳ)</span>
+                  <strong>{money(summary?.voucher?.usage_count)}</strong>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[#666666]">Tổng tiền giảm</span>
+                  <strong>{money(summary?.voucher?.total_discount)}đ</strong>
+                </div>
               </div>
-              <div className="admin-report__voucher-row">
-                <span>Tổng tiền giảm</span>
-                <strong>{money(summary?.voucher?.total_discount)}đ</strong>
-              </div>
-            </section>
+            </CoreCard>
           </div>
 
-          <section className="admin-report__section">
-            <h2 className="admin-report__section-title">Hậu mãi</h2>
-            <p className="admin-page__muted" style={{ marginTop: 0 }}>
-              Theo ngày tạo yêu cầu, trong kỳ lọc.
-            </p>
-            <div className="admin-report__after-grid">
-              <div className="admin-report__after-card">
-                <span>Yêu cầu sửa chữa</span>
-                <strong>{money(summary?.after_sales?.repair_requests)}</strong>
-              </div>
-              <div className="admin-report__after-card">
-                <span>Yêu cầu hoàn tiền</span>
-                <strong>{money(summary?.after_sales?.refund_requests)}</strong>
-              </div>
+          <section>
+            <h2 className="text-lg font-extrabold text-[#0f172a]">Hậu mãi</h2>
+            <p className="text-sm text-[#666666] mt-1">Theo ngày tạo yêu cầu, trong kỳ lọc.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+              <CoreCard>
+                <div className="text-sm text-[#666666]">Yêu cầu sửa chữa</div>
+                <div className="text-2xl font-extrabold mt-1">{money(summary?.after_sales?.repair_requests)}</div>
+              </CoreCard>
+              <CoreCard>
+                <div className="text-sm text-[#666666]">Yêu cầu hoàn tiền</div>
+                <div className="text-2xl font-extrabold mt-1">{money(summary?.after_sales?.refund_requests)}</div>
+              </CoreCard>
             </div>
           </section>
-        </>
+        </div>
       )}
     </div>
   );

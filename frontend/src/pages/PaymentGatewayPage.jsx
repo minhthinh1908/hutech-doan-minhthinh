@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { apiGet, apiPost } from "../api/client.js";
-import "./BuyerPages.css";
 
 function money(n) {
   return Number(n || 0).toLocaleString("vi-VN");

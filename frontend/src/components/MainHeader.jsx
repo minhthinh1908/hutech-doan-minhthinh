@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useCartItemCount } from "../hooks/useCartItemCount.js";
 import LogoMark from "./LogoMark.jsx";
-import "./MainHeader.css";
 
 function IconCart() {
   return (
@@ -43,7 +42,7 @@ export default function MainHeader() {
   return (
     <header className="main-header">
       <div className="main-header__inner container">
-        <Link to="/" className="main-header__logo" aria-label="Trang chủ Bình Định Tools">
+        <Link to="/" className="main-header__logo" aria-label="Trang chủ E-commerce Tools">
           <span className="main-header__logo-led">
             <LogoMark />
           </span>
@@ -84,7 +83,7 @@ export default function MainHeader() {
             <div className="main-header__hotline-lines">
               <div className="main-header__phone-row">
                 <span>
-                  CN Bình Định{" "}
+                  CN 1{" "}
                   <a href="tel:0336634677" className="main-header__phone-num">
                     0336 634 677
                   </a>

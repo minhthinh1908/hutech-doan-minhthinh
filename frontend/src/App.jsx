@@ -5,7 +5,7 @@ import RequireAuth from "./components/RequireAuth.jsx";
 import RequireAdmin from "./components/RequireAdmin.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import ContactPage from "./pages/ContactPage.jsx";
-import StaticPage from "./pages/StaticPage.jsx";
+import CmsPage from "./pages/CmsPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import ProductBrowsePage from "./pages/ProductBrowsePage.jsx";
@@ -32,7 +32,7 @@ import AdminRepairs from "./pages/admin/AdminRepairs.jsx";
 import AdminRefunds from "./pages/admin/AdminRefunds.jsx";
 import AdminFooterSettings from "./pages/admin/AdminFooterSettings.jsx";
 import AdminReviews from "./pages/admin/AdminReviews.jsx";
-import "./App.css";
+import AdminCmsPages from "./pages/admin/AdminCmsPages.jsx";
 
 export default function App() {
   return (
@@ -40,9 +40,10 @@ export default function App() {
       <Route path="/" element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="lien-he" element={<ContactPage />} />
-        <Route path="gioi-thieu" element={<StaticPage title="Giới thiệu" />} />
-        <Route path="dich-vu" element={<StaticPage title="Dịch vụ" />} />
-        <Route path="tin-tuc" element={<StaticPage title="Tin tức" />} />
+        <Route path="gioi-thieu" element={<CmsPage slug="gioi-thieu" fallbackTitle="Giới thiệu" />} />
+        <Route path="dich-vu" element={<CmsPage slug="dich-vu" fallbackTitle="Dịch vụ" />} />
+        <Route path="tin-tuc" element={<CmsPage slug="tin-tuc" fallbackTitle="Tin tức" />} />
+        <Route path=":slug" element={<CmsPage fallbackTitle="Nội dung" />} />
         <Route path="dang-nhap" element={<LoginPage />} />
         <Route path="dang-ky" element={<RegisterPage />} />
         <Route path="san-pham" element={<ProductBrowsePage />} />
@@ -135,6 +136,7 @@ export default function App() {
         <Route path="sua-chua" element={<AdminRepairs />} />
         <Route path="hoan-tien" element={<AdminRefunds />} />
         <Route path="chan-trang" element={<AdminFooterSettings />} />
+        <Route path="trang-noi-dung" element={<AdminCmsPages />} />
       </Route>
     </Routes>
   );

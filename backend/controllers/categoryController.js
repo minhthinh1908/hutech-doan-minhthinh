@@ -132,6 +132,74 @@ async function seedDefaults(req, res) {
     });
 }
 
+async function reorder(req, res) {
+    const roots = Array.isArray(req.body?.roots) ? req.body.roots : null;
+    if (!roots) {
+        return res.status(400).json({ message: "Payload không hợp lệ: cần roots[]" });
+    }
+
+    const rootIds = [];
+    const childIds = [];
+    const updates = [];
+
+    for (let rootIndex = 0; rootIndex < roots.length; rootIndex += 1) {
+        const root = roots[rootIndex] || {};
+        if (root.id == null) return res.status(400).json({ message: "Thiếu id danh mục gốc." });
+        const rootId = String(root.id);
+        if (rootIds.includes(rootId)) {
+            return res.status(400).json({ message: "Danh mục gốc bị trùng trong payload." });
+        }
+        rootIds.push(rootId);
+        updates.push({
+            category_id: BigInt(rootId),
+            parent_id: null,
+            sort_order: rootIndex
+        });
+
+        const children = Array.isArray(root.children) ? root.children : [];
+        for (let childIndex = 0; childIndex < children.length; childIndex += 1) {
+            const childRaw = children[childIndex];
+            const childId = String(childRaw);
+            if (childIds.includes(childId) || rootIds.includes(childId)) {
+                return res.status(400).json({ message: "Danh mục con bị trùng trong payload." });
+            }
+            childIds.push(childId);
+            updates.push({
+                category_id: BigInt(childId),
+                parent_id: BigInt(rootId),
+                sort_order: childIndex
+            });
+        }
+    }
+
+    const allIds = [...rootIds, ...childIds].map((id) => BigInt(id));
+    const existing = await prisma.category.findMany({
+        where: { category_id: { in: allIds } },
+        select: { category_id: true }
+    });
+    if (existing.length !== allIds.length) {
+        return res.status(400).json({ message: "Payload chứa danh mục không tồn tại." });
+    }
+
+    await prisma.$transaction(
+        updates.map((u) =>
+            prisma.category.update({
+                where: { category_id: u.category_id },
+                data: {
+                    parent_id: u.parent_id,
+                    sort_order: u.sort_order
+                }
+            })
+        )
+    );
+
+    return res.json({
+        message: "Đã lưu thứ tự danh mục.",
+        roots_updated: rootIds.length,
+        children_updated: childIds.length
+    });
+}
+
 async function remove(req, res) {
     const id = BigInt(req.params.id);
     const existing = await prisma.category.findUnique({ where: { category_id: id } });
@@ -155,4 +223,4 @@ async function remove(req, res) {
     return res.json({ message: "Category deleted" });
 }
 
-module.exports = { list, tree, getById, seedDefaults, create, update, remove };
+module.exports = { list, tree, getById, seedDefaults, create, update, reorder, remove };

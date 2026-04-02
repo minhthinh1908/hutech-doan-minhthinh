@@ -3,6 +3,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const { verifyToken, authorizeRoles } = require("../middleware/authMiddleware");
 const adminController = require("../controllers/adminController");
 const siteFooterController = require("../controllers/siteFooterController");
+const cmsPageController = require("../controllers/cmsPageController");
 const uploadImage = require("../middleware/uploadImage");
 
 const router = express.Router();
@@ -54,6 +55,9 @@ router.get("/reports/revenue", asyncHandler(adminController.reportRevenue));
 router.get("/reports/top-products", asyncHandler(adminController.reportTopProducts));
 
 router.patch("/site-footer", asyncHandler(siteFooterController.update));
+
+router.get("/cms-pages", asyncHandler(cmsPageController.listAdmin));
+router.put("/cms-pages/:slug", asyncHandler(cmsPageController.upsertAdmin));
 
 /** POST multipart field "file" — admin only; lưu vào /uploads, trả { url } */
 router.post(

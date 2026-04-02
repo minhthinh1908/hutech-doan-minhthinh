@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { apiGet, apiPost } from "../api/client.js";
 import BuyerSidebar from "../components/BuyerSidebar.jsx";
 import { paymentStatusBuyerLabel } from "../utils/paymentStatusLabels.js";
-import "./BuyerPages.css";
 
 function money(n) {
   return Number(n || 0).toLocaleString("vi-VN");
@@ -61,7 +60,9 @@ function OrderStatusTimeline({ status }) {
             key={label}
             className={`buyer-order-track__step${done ? " buyer-order-track__step--done" : ""}${current ? " buyer-order-track__step--current" : ""}${upcoming ? " buyer-order-track__step--upcoming" : ""}`}
           >
-            <span className="buyer-order-track__dot" aria-hidden />
+            <div className="buyer-order-track__marker">
+              <span className="buyer-order-track__dot" aria-hidden />
+            </div>
             <span className="buyer-order-track__label">{label}</span>
           </li>
         );

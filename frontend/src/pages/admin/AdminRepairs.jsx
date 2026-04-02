@@ -4,11 +4,10 @@ import {
   REPAIR_PRIMARY_FLOW,
   REPAIR_STATUS_LABELS,
   REPAIR_STATUS_ORDER,
-  repairBadgeClass,
   repairStatusLabel
 } from "../../utils/repairStatusConfig.js";
-import "./AdminPages.css";
-import "./AdminRepairs.css";
+import { CoreBadge, CoreButton, CoreCard, CoreDialog, CoreFilterActions, CoreMessage, CoreSpinner, CoreTable } from "../../components/ui/index.js";
+import useAdminToastNotices from "../../hooks/useAdminToastNotices.js";
 
 function toDateInputValue(iso) {
   if (!iso) return "";
@@ -29,6 +28,7 @@ export default function AdminRepairs() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  useAdminToastNotices({ err, setErr });
   const [filters, setFilters] = useState({
     q: "",
     status: "",
@@ -64,7 +64,7 @@ export default function AdminRepairs() {
       const data = await apiGet(`/admin/repair-requests${qs ? `?${qs}` : ""}`);
       setRows(Array.isArray(data) ? data : []);
     } catch (e) {
-      setErr(e.message || "Không tải được danh sách.");
+      setErr(e.message || "Không tải được dữ liệu.");
       setRows([]);
     } finally {
       setLoading(false);
@@ -155,7 +155,7 @@ export default function AdminRepairs() {
       const data = await apiGet("/admin/repair-requests");
       setRows(Array.isArray(data) ? data : []);
     } catch (e) {
-      setErr(e.message || "Không tải được danh sách.");
+      setErr(e.message || "Không tải được dữ liệu.");
       setRows([]);
     } finally {
       setLoading(false);
@@ -172,28 +172,29 @@ export default function AdminRepairs() {
   }, [detailId]);
 
   return (
-    <div className="admin-page admin-repairs">
-      <h1>Yêu cầu sửa chữa</h1>
-      <p className="admin-page__muted">
+    <div className="admin-page">
+      <h1 className="admin-section-title">Yêu cầu sửa chữa</h1>
+      <p className="admin-lead">
         Tiếp nhận và xử lý yêu cầu từ khách (trang «Xem bảo hành»). Luồng trạng thái chính:{" "}
         {REPAIR_PRIMARY_FLOW.map((s) => REPAIR_STATUS_LABELS[s]).join(" → ")}. Tìm kiếm, lọc và mở chi tiết để cập nhật
         trạng thái và ghi chú xử lý.
       </p>
 
-      <form className="admin-repairs__toolbar" onSubmit={applyFilters}>
-        <div className="admin-repairs__field admin-repairs__field--search">
-          <span className="admin-repairs__label">Tìm kiếm</span>
+      <CoreCard>
+        <form className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3" onSubmit={applyFilters}>
+          <div className="xl:col-span-2">
+            <span className="block text-xs font-extrabold uppercase tracking-wide text-[#666666] mb-1">Tìm kiếm</span>
           <input
-            className="admin-repairs__input"
+              className="admin-form-control w-full"
             placeholder="Mã YC, tên, email, sản phẩm, mô tả…"
             value={filters.q}
             onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
           />
         </div>
-        <div className="admin-repairs__field">
-          <span className="admin-repairs__label">Trạng thái</span>
+          <div>
+            <span className="block text-xs font-extrabold uppercase tracking-wide text-[#666666] mb-1">Trạng thái</span>
           <select
-            className="admin-repairs__select"
+              className="admin-form-control w-full"
             value={filters.status}
             onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
           >
@@ -205,28 +206,28 @@ export default function AdminRepairs() {
             ))}
           </select>
         </div>
-        <div className="admin-repairs__field">
-          <span className="admin-repairs__label">Từ ngày</span>
+          <div>
+            <span className="block text-xs font-extrabold uppercase tracking-wide text-[#666666] mb-1">Từ ngày</span>
           <input
             type="date"
-            className="admin-repairs__input"
+              className="admin-form-control w-full"
             value={filters.dateFrom}
             onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
           />
         </div>
-        <div className="admin-repairs__field">
-          <span className="admin-repairs__label">Đến ngày</span>
+          <div>
+            <span className="block text-xs font-extrabold uppercase tracking-wide text-[#666666] mb-1">Đến ngày</span>
           <input
             type="date"
-            className="admin-repairs__input"
+              className="admin-form-control w-full"
             value={filters.dateTo}
             onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
           />
         </div>
-        <div className="admin-repairs__field">
-          <span className="admin-repairs__label">Bảo hành</span>
+          <div>
+            <span className="block text-xs font-extrabold uppercase tracking-wide text-[#666666] mb-1">Bảo hành</span>
           <select
-            className="admin-repairs__select"
+              className="admin-form-control w-full"
             value={filters.warranty}
             onChange={(e) => setFilters((f) => ({ ...f, warranty: e.target.value }))}
           >
@@ -235,91 +236,86 @@ export default function AdminRepairs() {
             <option value="expired">Hết hạn / không còn</option>
           </select>
         </div>
-        <div className="admin-repairs__actions">
-          <button type="submit" className="admin-repairs__btn admin-repairs__btn--primary">
-            Áp dụng
-          </button>
-          <button type="button" className="admin-repairs__btn admin-repairs__btn--ghost" onClick={() => resetFiltersAndLoad()}>
-            Xóa lọc
-          </button>
-        </div>
-      </form>
+          <div className="flex items-end">
+            <CoreFilterActions
+              applyType="submit"
+              onClear={() => resetFiltersAndLoad()}
+              buttonClassName="!px-3 !py-1.5 text-sm"
+            />
+          </div>
+        </form>
+      </CoreCard>
 
-      {err ? (
-        <p className="admin-msg admin-msg--err" role="alert">
-          {err}
-        </p>
+      {loading ? (
+        <div className="flex items-center justify-center gap-3 py-10">
+          <CoreSpinner />
+          <span className="text-[#666666] font-semibold">Đang tải dữ liệu…</span>
+        </div>
       ) : null}
 
-      {loading ? <div className="admin-repairs__loading">Đang tải danh sách…</div> : null}
-
       {!loading && rows.length === 0 ? (
-        <div className="admin-repairs__empty">Không có yêu cầu sửa chữa nào khớp bộ lọc.</div>
+        <div className="rounded-xl border border-dashed border-[#E5E5E5] bg-[#F5F5F5] p-8 text-center text-[#666666]">
+          Không có yêu cầu sửa chữa nào khớp bộ lọc.
+        </div>
       ) : null}
 
       {!loading && rows.length > 0 ? (
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Khách hàng</th>
-                <th>Sản phẩm</th>
-                <th>Mã bảo hành</th>
-                <th>Ngày gửi</th>
-                <th>Trạng thái</th>
-                <th>Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.repair_request_id}>
-                  <td>{r.repair_request_id}</td>
-                  <td>
+        <CoreCard>
+          <CoreTable
+            value={rows}
+            dataKey="repair_request_id"
+            rows={10}
+            columns={[
+              { key: "id", header: "ID", field: "repair_request_id" },
+              {
+                key: "user",
+                header: "Khách hàng",
+                body: (r) => (
+                  <div>
                     <div>{r.user?.full_name || "—"}</div>
-                    <div style={{ fontSize: "0.75rem", color: "#666" }}>{r.user?.email || ""}</div>
-                  </td>
-                  <td>{r.warranty?.order_item?.product?.product_name || "—"}</td>
-                  <td>{r.warranty_id}</td>
-                  <td>{r.request_date?.slice?.(0, 10) || "—"}</td>
-                  <td>
-                    <span className={repairBadgeClass(r.repair_status)}>{repairStatusLabel(r.repair_status)}</span>
-                  </td>
-                  <td>
-                    <div className="admin-repairs__table-actions">
-                      <button type="button" className="admin-repairs__link-btn" onClick={() => openDetail(r.repair_request_id)}>
-                        Chi tiết
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    <div className="text-xs text-[#666666]">{r.user?.email || ""}</div>
+                  </div>
+                ),
+              },
+              { key: "product", header: "Sản phẩm", body: (r) => r.warranty?.order_item?.product?.product_name || "—" },
+              { key: "warranty", header: "Mã bảo hành", body: (r) => r.warranty_id },
+              { key: "date", header: "Ngày gửi", body: (r) => r.request_date?.slice?.(0, 10) || "—" },
+              {
+                key: "status",
+                header: "Trạng thái",
+                body: (r) => <CoreBadge value={repairStatusLabel(r.repair_status)} tone="info" />,
+              },
+            ]}
+            actionConfig={{
+              onView: (row) => openDetail(row.repair_request_id),
+              copyFields: [
+                { label: "Mã yêu cầu", field: "repair_request_id" },
+                { label: "Trạng thái", field: "repair_status" },
+                { label: "Mã bảo hành", field: "warranty_id" },
+              ],
+              excel: { fileName: "admin-repairs.xlsx" },
+            }}
+          />
+        </CoreCard>
       ) : null}
 
-      {detailId ? (
-        <div className="admin-repairs-drawer__backdrop" role="presentation" onClick={(e) => e.target === e.currentTarget && closeDetail()}>
-          <aside className="admin-repairs-drawer" role="dialog" aria-modal="true" aria-labelledby="admin-repair-drawer-title" onClick={(e) => e.stopPropagation()}>
-            <div className="admin-repairs-drawer__head">
-              <h2 id="admin-repair-drawer-title">Chi tiết yêu cầu #{detailId}</h2>
-              <button type="button" className="admin-repairs-drawer__close" onClick={closeDetail} aria-label="Đóng">
-                ×
-              </button>
-            </div>
-            <div className="admin-repairs-drawer__body">
-              {detailLoading ? <p className="admin-page__muted">Đang tải…</p> : null}
+      <CoreDialog
+        header={detailId ? `Chi tiết yêu cầu #${detailId}` : "Chi tiết yêu cầu"}
+        visible={detailId != null}
+        modal
+        onHide={closeDetail}
+        breakpoints={{ "960px": "100vw" }}
+      >
+              {detailLoading ? <p className="text-sm text-[#666666]">Đang tải chi tiết…</p> : null}
               {detailErr ? (
-                <p className="admin-msg admin-msg--err" role="alert">
-                  {detailErr}
-                </p>
+          <CoreMessage severity="error" text={detailErr} />
               ) : null}
               {!detailLoading && detail ? (
                 <>
-                  <div className="admin-repairs-drawer__section">
+            <div className="space-y-4">
+              <CoreCard>
                     <h3>Khách hàng</h3>
-                    <dl className="admin-repairs-drawer__dl">
+                <dl className="grid grid-cols-[120px_1fr] gap-y-1 text-sm">
                       <dt>Họ tên</dt>
                       <dd>{detail.user?.full_name || "—"}</dd>
                       <dt>Email</dt>
@@ -327,10 +323,10 @@ export default function AdminRepairs() {
                       <dt>Số điện thoại</dt>
                       <dd>{detail.user?.phone || "—"}</dd>
                     </dl>
-                  </div>
-                  <div className="admin-repairs-drawer__section">
+              </CoreCard>
+              <CoreCard>
                     <h3>Sản phẩm &amp; đơn hàng</h3>
-                    <dl className="admin-repairs-drawer__dl">
+                <dl className="grid grid-cols-[120px_1fr] gap-y-1 text-sm">
                       <dt>Sản phẩm</dt>
                       <dd>{detail.warranty?.order_item?.product?.product_name || "—"}</dd>
                       <dt>SKU</dt>
@@ -338,10 +334,10 @@ export default function AdminRepairs() {
                       <dt>Mã đơn</dt>
                       <dd>{detail.warranty?.order_item?.order?.order_id ?? "—"}</dd>
                     </dl>
-                  </div>
-                  <div className="admin-repairs-drawer__section">
+              </CoreCard>
+              <CoreCard>
                     <h3>Bảo hành</h3>
-                    <dl className="admin-repairs-drawer__dl">
+                <dl className="grid grid-cols-[120px_1fr] gap-y-1 text-sm">
                       <dt>Mã phiếu</dt>
                       <dd>{detail.warranty_id}</dd>
                       <dt>Từ — đến</dt>
@@ -351,43 +347,44 @@ export default function AdminRepairs() {
                       <dt>Trạng thái phiếu</dt>
                       <dd>{detail.warranty?.status || "—"}</dd>
                     </dl>
-                  </div>
-                  <div className="admin-repairs-drawer__section">
+              </CoreCard>
+              <CoreCard>
                     <h3>Mô tả lỗi (khách)</h3>
-                    <p style={{ margin: 0, fontSize: "0.88rem", lineHeight: 1.5 }}>{detail.issue_description}</p>
-                  </div>
-                  <div className="admin-repairs-drawer__section">
+                    <p className="m-0 text-sm leading-relaxed">{detail.issue_description}</p>
+              </CoreCard>
+              <CoreCard>
                     <h3>Ảnh đính kèm</h3>
                     {parseAttachments(detail.attachment_urls).length === 0 ? (
-                      <p className="admin-repairs-drawer__hint">Không có ảnh.</p>
+                  <p className="text-sm text-[#666666]">Không có ảnh.</p>
                     ) : (
-                      <div className="admin-repairs-drawer__imgs">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {parseAttachments(detail.attachment_urls).map((url) => (
                           <a key={url} href={url} target="_blank" rel="noopener noreferrer">
-                            <img src={url} alt="" />
+                        <img src={url} alt="" className="w-full h-24 object-cover rounded border border-[#E5E5E5]" />
                           </a>
                         ))}
                       </div>
                     )}
-                  </div>
-                  <div className="admin-repairs-drawer__section">
+              </CoreCard>
+              <CoreCard>
                     <h3>Trạng thái hiện tại</h3>
-                    <p style={{ margin: 0 }}>
-                      <span className={repairBadgeClass(detail.repair_status)}>{repairStatusLabel(detail.repair_status)}</span>
+                    <p className="m-0">
+                  <CoreBadge value={repairStatusLabel(detail.repair_status)} tone="info" />
                       {detail.completed_at ? (
-                        <span style={{ marginLeft: "0.5rem", fontSize: "0.8rem", color: "#666" }}>
+                        <span className="ml-2 text-xs text-[#666666]">
                           Hoàn tất lúc: {new Date(detail.completed_at).toLocaleString("vi-VN")}
                         </span>
                       ) : null}
                     </p>
-                  </div>
+              </CoreCard>
 
-                  <form className="admin-repairs-drawer__form" onSubmit={submitForm}>
-                    <div className="admin-repairs-drawer__section">
+              <CoreCard>
+                <form onSubmit={submitForm}>
                       <h3>Cập nhật xử lý</h3>
-                      <label>
+                  <label className="block mb-3">
                         Trạng thái
                         <select
+                      className="admin-form-control w-full mt-1"
                           value={form.repair_status}
                           onChange={(e) => setForm((f) => ({ ...f, repair_status: e.target.value }))}
                         >
@@ -398,64 +395,61 @@ export default function AdminRepairs() {
                           ))}
                         </select>
                       </label>
-                      <label>
+                  <label className="block mb-3">
                         Ghi chú nội bộ (admin)
                         <textarea
+                      className="admin-form-control w-full mt-1"
                           value={form.admin_notes}
                           onChange={(e) => setForm((f) => ({ ...f, admin_notes: e.target.value }))}
                           placeholder="Ghi chú không hiển thị cho khách…"
                         />
                       </label>
-                      <label>
+                  <label className="block mb-3">
                         Kết quả / phản hồi cho khách
                         <textarea
+                      className="admin-form-control w-full mt-1"
                           value={form.resolution_notes}
                           onChange={(e) => setForm((f) => ({ ...f, resolution_notes: e.target.value }))}
                           placeholder="Mô tả kết quả sửa chữa, hướng dẫn nhận máy…"
                         />
                       </label>
-                      <label>
+                  <label className="block mb-3">
                         Ngày dự kiến hoàn tất
                         <input
                           type="date"
+                      className="admin-form-control w-full mt-1"
                           value={form.expected_completion_date}
                           onChange={(e) => setForm((f) => ({ ...f, expected_completion_date: e.target.value }))}
                         />
                       </label>
-                    </div>
-                    <div className="admin-repairs-drawer__form-actions">
-                      <button type="submit" className="admin-repairs-drawer__btn admin-repairs-drawer__btn--dark" disabled={saving}>
-                        {saving ? "Đang lưu…" : "Lưu thay đổi"}
-                      </button>
-                      <button
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <CoreButton type="submit" label={saving ? "Đang lưu…" : "Lưu thay đổi"} disabled={saving} />
+                    <CoreButton
                         type="button"
-                        className="admin-repairs-drawer__btn admin-repairs-drawer__btn--success"
+                      tone="secondary"
+                      label="Đánh dấu hoàn tất"
                         disabled={saving}
                         onClick={() => saveDetail({ repair_status: "completed" })}
-                      >
-                        Đánh dấu hoàn tất
-                      </button>
-                      <button
+                    />
+                    <CoreButton
                         type="button"
-                        className="admin-repairs-drawer__btn admin-repairs-drawer__btn--danger"
+                      tone="danger"
+                      label="Từ chối yêu cầu"
                         disabled={saving}
                         onClick={() => {
                           if (window.confirm("Từ chối yêu cầu này?")) saveDetail({ repair_status: "rejected" });
                         }}
-                      >
-                        Từ chối yêu cầu
-                      </button>
-                    </div>
-                    <p className="admin-repairs-drawer__hint">
+                    />
+                  </div>
+                  <p className="text-xs text-[#666666] mt-2">
                       «Đánh dấu hoàn tất» đặt trạng thái <strong>completed</strong> và ghi nhận thời điểm hoàn tất (nếu chưa có).
                     </p>
-                  </form>
+                </form>
+              </CoreCard>
+            </div>
                 </>
               ) : null}
-            </div>
-          </aside>
-        </div>
-      ) : null}
+      </CoreDialog>
     </div>
   );
 }

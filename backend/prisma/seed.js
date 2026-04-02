@@ -3,14 +3,14 @@
  *
  * Ví dụ dữ liệu Admin → Đánh giá (sau `npx prisma db seed`):
  *   - 3 đánh giá: đã duyệt / chờ duyệt / từ chối; 1 bình luận của shop trên đánh giá đã duyệt.
- *   - Tài khoản thử: demo-buyer@binhdinhtools.local / Demo@123456; seed-reviewer-2@binhdinhtools.local / Demo@123456
+ *   - Tài khoản thử: demo-buyer@ecommercetools.local / Demo@123456; seed-reviewer-2@ecommercetools.local / Demo@123456
  *
  * Admin → Hoàn tiền — 4 yêu cầu mẫu (chờ xử lý / đã duyệt / từ chối / hoàn tất), lý do bắt đầu bằng "[seed-demo hoàn tiền]".
  *
  * Admin → Bảo hành — 3 khách mẫu (phiếu BH + ghi chú admin):
  *   - demo-buyer@… (đơn mẫu + BH gắn sửa chữa seed)
- *   - demo-bh-2@binhdinhtools.local / Demo@123456 — Trần Thị Nga
- *   - demo-bh-3@binhdinhtools.local / Demo@123456 — Lê Văn Minh
+ *   - demo-bh-2@ecommercetools.local / Demo@123456 — Trần Thị Nga
+ *   - demo-bh-3@ecommercetools.local / Demo@123456 — Lê Văn Minh
  *
  *   cd backend
  *   npx prisma db seed
@@ -53,22 +53,45 @@ async function seedDefaultCategories() {
   }
 }
 
+const DEFAULT_CMS_BODY =
+  "<p>Nội dung trang đang được cập nhật. Vui lòng quay lại sau hoặc liên hệ hotline.</p>";
+
+async function ensureCmsPages() {
+  const pages = [
+    { slug: "gioi-thieu", title: "Giới thiệu" },
+    { slug: "dich-vu", title: "Dịch vụ" },
+    { slug: "tin-tuc", title: "Tin tức" }
+  ];
+  for (const p of pages) {
+    await prisma.cmsPage.upsert({
+      where: { slug: p.slug },
+      create: {
+        slug: p.slug,
+        title: p.title,
+        body_html: DEFAULT_CMS_BODY
+      },
+      update: {}
+    });
+  }
+  console.log("[seed] cms_pages: đảm bảo 3 trang (Giới thiệu / Dịch vụ / Tin tức).");
+}
+
 async function ensureSiteFooter() {
   await prisma.siteFooter.upsert({
     where: { id: 1 },
     create: {
       id: 1,
-      site_name: "BÌNH ĐỊNH TOOLS",
-      branch1_label: "Chi nhánh Bình Định:",
+      site_name: "E-COMMERCE TOOLS",
+      branch1_label: "Chi nhánh 1:",
       branch1_phone: "0336 634 677",
       branch1_address:
         "73 Đường Đào Tấn, Phường Nhơn Bình, Thành phố Quy Nhơn, Tỉnh Bình Định",
       branch2_label: "Chi nhánh HCM:",
       branch2_phone: "0981 278 914",
       branch2_address: "2A, đường số 9, phường Phú Lâm, Thành Phố Hồ Chí Minh",
-      email: "binhdinhtools@gmail.com",
-      website_url: "https://binhdinhtools.vn",
-      copyright_line: "© BÌNH ĐỊNH TOOLS",
+      email: "contact@ecommercetools.com",
+      website_url: "https://ecommercetools.com",
+      copyright_line: "© E-COMMERCE TOOLS",
       policies_json: [
         { label: "Hướng dẫn mua hàng", to: "/gioi-thieu" },
         { label: "Chính sách vận chuyển", to: "/dich-vu" },
@@ -149,7 +172,7 @@ async function ensureDemoOrder(prismaClient) {
     return;
   }
 
-  const demoEmail = "demo-buyer@binhdinhtools.local";
+  const demoEmail = "demo-buyer@ecommercetools.local";
   let buyer = await prismaClient.user.findUnique({ where: { email: demoEmail } });
   if (!buyer) {
     buyer = await prismaClient.user.create({
@@ -250,7 +273,7 @@ async function ensureDemoOrder(prismaClient) {
 
 /** Đơn demo cũ (unpaid/pending) → paid/success để Báo cáo có ví dụ doanh thu (idempotent). */
 async function ensureDemoOrderPaidForReports(prismaClient) {
-  const demoEmail = "demo-buyer@binhdinhtools.local";
+  const demoEmail = "demo-buyer@ecommercetools.local";
   const buyer = await prismaClient.user.findUnique({ where: { email: demoEmail } });
   if (!buyer) return;
 
@@ -334,7 +357,7 @@ async function ensureDemoWarrantyExtraBuyers(prismaClient) {
 
   const samples = [
     {
-      email: "demo-bh-2@binhdinhtools.local",
+      email: "demo-bh-2@ecommercetools.local",
       full_name: "Trần Thị Nga",
       phone: "0911111111",
       warrantyStatus: "active",
@@ -343,7 +366,7 @@ async function ensureDemoWarrantyExtraBuyers(prismaClient) {
       end_date: new Date("2028-12-31T00:00:00.000Z")
     },
     {
-      email: "demo-bh-3@binhdinhtools.local",
+      email: "demo-bh-3@ecommercetools.local",
       full_name: "Lê Văn Minh",
       phone: "0922222222",
       warrantyStatus: "expired",
@@ -453,7 +476,7 @@ async function ensureDemoRepairRequests(prismaClient) {
     return;
   }
 
-  const demoEmail = "demo-buyer@binhdinhtools.local";
+  const demoEmail = "demo-buyer@ecommercetools.local";
   const buyer = await prismaClient.user.findUnique({ where: { email: demoEmail } });
   if (!buyer) {
     console.warn("[seed] demo repairs: chưa có khách demo — bỏ qua.");
@@ -556,14 +579,14 @@ async function ensureDemoReviews(prismaClient) {
     return;
   }
 
-  const demoEmail = "demo-buyer@binhdinhtools.local";
+  const demoEmail = "demo-buyer@ecommercetools.local";
   const buyer = await prismaClient.user.findUnique({ where: { email: demoEmail } });
   if (!buyer) {
-    console.warn("[seed] demo reviews: chưa có khách demo — chạy seed sau khi có demo-buyer@binhdinhtools.local.");
+    console.warn("[seed] demo reviews: chưa có khách demo — chạy seed sau khi có demo-buyer@ecommercetools.local.");
     return;
   }
 
-  const email2 = "seed-reviewer-2@binhdinhtools.local";
+  const email2 = "seed-reviewer-2@ecommercetools.local";
   let buyer2 = await prismaClient.user.findUnique({ where: { email: email2 } });
   if (!buyer2) {
     buyer2 = await prismaClient.user.create({
@@ -646,7 +669,7 @@ async function ensureDemoReviews(prismaClient) {
       data: {
         review_id: r1.review_id,
         user_id: adminUser.user_id,
-        body: "Cảm ơn bạn đã tin tưởng Bình Định Tools. Chúc bạn sử dụng hiệu quả!"
+        body: "Cảm ơn bạn đã tin tưởng E-commerce Tools. Chúc bạn sử dụng hiệu quả!"
       }
     });
   }
@@ -663,13 +686,14 @@ async function main() {
   await ensureRole("buyer");
   const adminRole =   await ensureRole("admin");
   await ensureSiteFooter();
+  await ensureCmsPages();
   const brSeed = await ensureDefaultBrands(prisma);
   if (brSeed.created > 0) {
     console.log(`[seed] brands: +${brSeed.created} thương hiệu mặc định (Milwaukee, DEWALT, …).`);
   }
   await seedDefaultCategories();
 
-  const email = (process.env.ADMIN_EMAIL || "admin@binhdinhtools.local").trim().toLowerCase();
+  const email = (process.env.ADMIN_EMAIL || "admin@ecommercetools.local").trim().toLowerCase();
   const password = process.env.ADMIN_PASSWORD || "Admin@123456";
 
   if (!process.env.ADMIN_PASSWORD) {

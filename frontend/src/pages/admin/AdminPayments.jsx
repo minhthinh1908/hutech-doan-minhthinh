@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet, apiPatch } from "../../api/client.js";
 import { paymentStatusAdminLabel } from "../../utils/paymentStatusLabels.js";
-import "./AdminPages.css";
+import { CoreBadge, CoreButton, CoreCard, CoreDialog, CoreFilterActions, CoreFilterButtons, CoreMessage, CoreSpinner, CoreTable } from "../../components/ui/index.js";
+import useAdminToastNotices from "../../hooks/useAdminToastNotices.js";
 
 function money(n) {
   if (n == null || n === "") return "—";
@@ -69,6 +70,11 @@ const STATUS_FILTER = [
   { value: "callback_failed", label: "Callback lỗi" },
   { value: "cancelled", label: "Đã hủy (GD)" }
 ];
+const QUICK_FILTER_OPTIONS = [
+  { value: "failed", label: "GD / đơn thất bại", activeLabel: "✓ Thất bại" },
+  { value: "refunded", label: "Đơn hoàn tiền", activeLabel: "✓ Hoàn tiền" },
+  { value: "abnormal", label: "GD bất thường / lỗi", activeLabel: "✓ Bất thường" }
+];
 
 function displayAmount(p) {
   if (p.paid_amount != null && p.paid_amount !== "") return p.paid_amount;
@@ -77,9 +83,15 @@ function displayAmount(p) {
 
 export default function AdminPayments() {
   const [rows, setRows] = useState([]);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [first, setFirst] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortField, setSortField] = useState("payment_id");
+  const [sortOrder, setSortOrder] = useState(-1);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
+  useAdminToastNotices({ err, msg, setErr, setMsg });
   const [q, setQ] = useState("");
   const [qDebounced, setQDebounced] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -113,9 +125,19 @@ export default function AdminPayments() {
       params.payment_status = statusFilter;
     }
     if (qDebounced) params.q = qDebounced;
+    params.page = Math.floor(first / rowsPerPage) + 1;
+    params.limit = rowsPerPage;
+    params.sortField = sortField;
+    params.sortOrder = sortOrder;
     const data = await apiGet("/admin/payments", params);
-    setRows(Array.isArray(data) ? data : []);
-  }, [statusFilter, qDebounced, quick]);
+    if (Array.isArray(data)) {
+      setRows(data);
+      setTotalRecords(data.length);
+      return;
+    }
+    setRows(Array.isArray(data?.items) ? data.items : []);
+    setTotalRecords(Number(data?.total) || 0);
+  }, [statusFilter, qDebounced, quick, first, rowsPerPage, sortField, sortOrder]);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,7 +147,7 @@ export default function AdminPayments() {
       try {
         await load();
       } catch (e) {
-        if (!cancelled) setErr(e.message || "Không tải được lịch sử thanh toán.");
+        if (!cancelled) setErr(e.message || "Không tải được dữ liệu.");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -174,7 +196,7 @@ export default function AdminPayments() {
       await load();
       closeEdit();
     } catch (e) {
-      setErr(e.message || "Không lưu được.");
+      setErr(e.message || "Không lưu được dữ liệu.");
     } finally {
       setSaving(false);
     }
@@ -208,449 +230,325 @@ export default function AdminPayments() {
 
   return (
     <div className="admin-page">
-      <h1>Thanh toán (Payment Gateway)</h1>
-      <p className="admin-page__muted">
+      <h1 className="admin-section-title">Thanh toán (Payment Gateway)</h1>
+      <p className="admin-lead">
         Danh sách giao dịch đã ghi nhận (cổng, chuyển khoản, COD). Tra cứu theo{" "}
         <strong>mã giao dịch</strong>, lọc theo <strong>trạng thái</strong>, xem nhanh{" "}
         <strong>thất bại</strong> hoặc đơn <strong>hoàn tiền</strong>. Admin chỉ xem / đối soát bản ghi — không thực hiện
         giao dịch trực tiếp trên cổng tại đây.
       </p>
-      {err ? (
-        <p className="admin-msg admin-msg--err" role="alert">
-          {err}
-        </p>
-      ) : null}
-      {msg ? (
-        <p className="admin-msg admin-msg--ok" role="status">
-          {msg}
-        </p>
-      ) : null}
+      <CoreCard>
+        <div className="flex flex-col lg:flex-row gap-4 lg:items-end">
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-extrabold uppercase tracking-wide text-[#666666]">Trạng thái giao dịch</span>
+            <select
+              className="admin-form-control"
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                if (e.target.value !== "all") setQuick("");
+                setFirst(0);
+              }}
+              disabled={!!quick}
+            >
+              {STATUS_FILTER.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
 
-      <div className="admin-orders-toolbar" role="search">
-        <label className="admin-orders-toolbar__field">
-          <span className="admin-orders-toolbar__label">Trạng thái giao dịch</span>
-          <select
-            className="admin-orders-toolbar__select"
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              if (e.target.value !== "all") setQuick("");
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-extrabold uppercase tracking-wide text-[#666666]">Xem nhanh</span>
+            <CoreFilterButtons
+              options={QUICK_FILTER_OPTIONS}
+              activeValue={quick}
+              buttonClassName="!px-3 !py-1.5 text-sm"
+              getLabel={(option, isActive) => (isActive ? option.activeLabel || option.label : option.label)}
+              onChange={(next) => {
+                setQuickFilter(next === quick ? "" : next);
+                setFirst(0);
+              }}
+            />
+          </div>
+
+          <div className="flex-1 flex flex-col gap-2">
+            <span className="text-xs font-extrabold uppercase tracking-wide text-[#666666]">Tìm mã giao dịch / mã đơn / mã TT</span>
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <input
+                value={q}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setFirst(0);
+                }}
+                placeholder="Ví dụ: VNPAY123 hoặc 42"
+                className="admin-form-control w-full"
+              />
+            </span>
+          </div>
+
+          <CoreFilterActions
+            mode="clearOnly"
+            onClear={() => {
+              setQ("");
+              setStatusFilter("all");
+              setQuick("");
+              setFirst(0);
             }}
-            disabled={!!quick}
-            aria-label="Lọc trạng thái thanh toán"
-          >
-            {STATUS_FILTER.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="admin-orders-toolbar__field" style={{ flexWrap: "wrap" }}>
-          <span className="admin-orders-toolbar__label">Xem nhanh</span>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-            <button
-              type="button"
-              className={`admin-btn admin-btn--sm${quick === "failed" ? "" : " admin-btn--secondary"}`}
-              onClick={() => setQuickFilter(quick === "failed" ? "" : "failed")}
-            >
-              {quick === "failed" ? "✓ Thất bại" : "GD / đơn thất bại"}
-            </button>
-            <button
-              type="button"
-              className={`admin-btn admin-btn--sm${quick === "refunded" ? "" : " admin-btn--secondary"}`}
-              onClick={() => setQuickFilter(quick === "refunded" ? "" : "refunded")}
-            >
-              {quick === "refunded" ? "✓ Hoàn tiền" : "Đơn hoàn tiền"}
-            </button>
-            <button
-              type="button"
-              className={`admin-btn admin-btn--sm${quick === "abnormal" ? "" : " admin-btn--secondary"}`}
-              onClick={() => setQuickFilter(quick === "abnormal" ? "" : "abnormal")}
-              title="Lỗi cổng, timeout, callback lỗi, hoặc cờ bất thường"
-            >
-              {quick === "abnormal" ? "✓ Bất thường" : "GD bất thường / lỗi"}
-            </button>
-          </div>
-        </div>
-        <label className="admin-orders-toolbar__field admin-orders-toolbar__field--grow">
-          <span className="admin-orders-toolbar__label">Tìm mã giao dịch / mã đơn / mã TT</span>
-          <input
-            type="search"
-            className="admin-orders-toolbar__input"
-            placeholder="Ví dụ: VNPAY123 hoặc 42"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            aria-label="Tìm theo mã giao dịch hoặc số đơn"
+            buttonClassName="!px-3 !py-1.5 text-sm"
           />
-        </label>
-        <button
-          type="button"
-          className="admin-btn admin-btn--secondary"
-          onClick={() => {
-            setQ("");
-            setStatusFilter("all");
-            setQuick("");
-          }}
-        >
-          Xóa lọc
-        </button>
-      </div>
+        </div>
+      </CoreCard>
 
-      <div className="admin-page__panel">
+      <CoreCard>
         {loading ? (
-          <p className="admin-page__muted" style={{ margin: 0 }}>
-            Đang tải…
-          </p>
+          <div className="flex items-center justify-center gap-3 py-10">
+            <CoreSpinner />
+            <span className="text-[#666666] font-semibold">Đang tải dữ liệu…</span>
+          </div>
         ) : (
-          <div className="admin-table-wrap">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Mã TT</th>
-                  <th>Mã đơn</th>
-                  <th>Khách</th>
-                  <th>Phương thức</th>
-                  <th>Mã giao dịch</th>
-                  <th>Số tiền</th>
-                  <th>Trạng thái GD</th>
-                  <th>Thời gian TT</th>
-                  <th>TT đơn</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.length === 0 ? (
-                  <tr>
-                    <td colSpan={12} className="admin-page__muted">
-                      Không có bản ghi thanh toán phù hợp.
-                    </td>
-                  </tr>
-                ) : (
-                  rows.map((p) => (
-                    <tr key={p.payment_id}>
-                      <td>#{p.payment_id}</td>
-                      <td>
-                        <strong>#{p.order?.order_id ?? p.order_id}</strong>
-                      </td>
-                      <td>
-                        {p.order?.user?.full_name || "—"}
-                        <br />
-                        <span style={{ fontSize: "0.75rem", color: "#666" }}>{p.order?.user?.email || ""}</span>
-                      </td>
-                      <td style={{ fontSize: "0.85rem", maxWidth: 200 }}>
-                        {payMethodLabel(p.payment_method)}
-                        {p.payment_gateway ? (
-                          <span className="admin-page__muted" style={{ display: "block", fontSize: "0.72rem" }}>
-                            {p.payment_gateway}
-                          </span>
-                        ) : null}
-                      </td>
-                      <td style={{ fontFamily: "monospace", fontSize: "0.8rem", wordBreak: "break-all" }}>
-                        {p.transaction_code || "—"}
-                      </td>
-                      <td>{money(displayAmount(p))}đ</td>
-                      <td>
-                        <span
-                          className={`admin-badge ${
-                            p.payment_status === "success" || p.payment_status === "paid"
-                              ? "admin-badge--ok"
-                              : p.payment_status === "failed"
-                                ? "admin-badge--off"
-                                : ""
-                          }`}
-                        >
-                          {payRowStatusLabel(p.payment_status)}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: "0.8rem" }}>
-                        {p.is_abnormal ? (
-                          <span className="admin-badge admin-badge--off" title="Đánh dấu bất thường">
-                            Có
-                          </span>
-                        ) : (
-                          <span className="admin-page__muted">—</span>
-                        )}
-                      </td>
-                      <td
-                        style={{
-                          fontSize: "0.75rem",
-                          maxWidth: 200,
-                          wordBreak: "break-word",
-                          color: p.error_code || p.buyer_message ? "#8b2942" : undefined
-                        }}
-                        title={p.buyer_message || ""}
-                      >
-                        {p.error_code ? (
-                          <span style={{ fontFamily: "monospace" }}>{p.error_code}</span>
-                        ) : null}
-                        {p.error_code && p.buyer_message ? <br /> : null}
-                        {p.buyer_message ? (
-                          <span className="admin-page__muted">{p.buyer_message}</span>
-                        ) : !p.error_code ? (
-                          "—"
-                        ) : null}
-                      </td>
-                      <td style={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}>
-                        {p.paid_at ? fmtDt(p.paid_at) : "—"}
-                      </td>
-                      <td style={{ fontSize: "0.85rem" }}>{orderPayLabel(p.order?.payment_status)}</td>
-                      <td style={{ whiteSpace: "nowrap" }}>
-                        <button type="button" className="admin-btn admin-btn--sm" onClick={() => openDetail(p.payment_id)}>
-                          Chi tiết
-                        </button>{" "}
-                        <button type="button" className="admin-btn admin-btn--sm admin-btn--secondary" onClick={() => openEdit(p)}>
-                          Đối soát
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <CoreTable
+            value={rows}
+            dataKey="payment_id"
+            lazy
+            first={first}
+            rows={rowsPerPage}
+            totalRecords={totalRecords}
+            onPage={(e) => {
+              setFirst(e.first);
+              setRowsPerPage(e.rows);
+            }}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            onSort={(e) => {
+              setSortField(e.sortField || "payment_id");
+              setSortOrder(e.sortOrder ?? -1);
+              setFirst(0);
+            }}
+            emptyMessage="Không có bản ghi thanh toán phù hợp."
+            columns={[
+              { key: "id", header: "Mã TT", field: "payment_id", sortable: true, body: (p) => `#${p.payment_id}` },
+              { key: "order", header: "Mã đơn", field: "order_id", sortable: true, body: (p) => `#${p.order?.order_id ?? p.order_id}` },
+              {
+                key: "user",
+                header: "Khách",
+                body: (p) => (
+                  <div>
+                    <div className="font-semibold">{p.order?.user?.full_name || "—"}</div>
+                    <div className="text-xs text-[#666666]">{p.order?.user?.email || ""}</div>
+                  </div>
+                ),
+              },
+              {
+                key: "method",
+                header: "Phương thức",
+                body: (p) => (
+                  <div className="text-sm">
+                    <div>{payMethodLabel(p.payment_method)}</div>
+                    {p.payment_gateway ? <div className="text-xs text-[#666666]">{p.payment_gateway}</div> : null}
+                  </div>
+                ),
+              },
+              { key: "tx", header: "Mã giao dịch", body: (p) => <span className="break-all font-mono text-xs">{p.transaction_code || "—"}</span> },
+              { key: "amount", header: "Số tiền", field: "paid_amount", sortable: true, body: (p) => `${money(displayAmount(p))}đ` },
+              {
+                key: "status",
+                header: "Trạng thái GD",
+                body: (p) => {
+                  const ok = p.payment_status === "success" || p.payment_status === "paid";
+                  const bad = p.payment_status === "failed";
+                  return <CoreBadge value={payRowStatusLabel(p.payment_status)} tone={ok ? "success" : bad ? "danger" : "neutral"} />;
+                },
+              },
+              { key: "abnormal", header: "Bất thường", body: (p) => (p.is_abnormal ? <CoreBadge value="Có" tone="danger" /> : <span className="text-[#666666]">—</span>) },
+              {
+                key: "note",
+                header: "Ghi chú / lỗi",
+                body: (p) =>
+                  p.error_code || p.buyer_message ? (
+                    <div className="text-xs" title={p.buyer_message || ""}>
+                      {p.error_code ? <span className="font-mono text-[#8b2942]">{p.error_code}</span> : null}
+                      {p.error_code && p.buyer_message ? <br /> : null}
+                      {p.buyer_message ? <span className="text-[#666666]">{p.buyer_message}</span> : null}
+                    </div>
+                  ) : (
+                    "—"
+                  ),
+              },
+              { key: "paidAt", header: "Thời gian TT", field: "paid_at", sortable: true, body: (p) => (p.paid_at ? fmtDt(p.paid_at) : "—") },
+              { key: "orderStatus", header: "TT đơn", body: (p) => orderPayLabel(p.order?.payment_status) },
+            ]}
+            actionConfig={{
+              onView: (row) => openDetail(row.payment_id),
+              copyFields: [
+                { label: "Mã thanh toán", field: "payment_id" },
+                { label: "Mã giao dịch", field: "transaction_code" },
+                { label: "Trạng thái giao dịch", field: "payment_status" },
+              ],
+              getExtraItems: (row) => [
+                {
+                  label: "Đối soát",
+                  icon: "pi pi-sync",
+                  command: () => openEdit(row),
+                },
+              ],
+              excel: { fileName: "admin-payments.xlsx" },
+            }}
+          />
         )}
-      </div>
+      </CoreCard>
 
-      {edit ? (
-        <div className="admin-modal-backdrop" role="presentation" onClick={closeEdit}>
-          <div
-            className="admin-modal"
-            role="dialog"
-            aria-labelledby="admin-payment-edit-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button type="button" className="admin-modal__close" aria-label="Đóng" onClick={closeEdit}>
-              ×
-            </button>
-            <h2 id="admin-payment-edit-title" className="admin-modal__title">
-              Đối soát thanh toán #{edit.payment_id} — đơn #{edit.order_id}
-            </h2>
-            <p className="admin-page__muted" style={{ marginTop: 0 }}>
-              Cập nhật dữ liệu đã lưu (mã giao dịch, số tiền, thời điểm, trạng thái). Không thực hiện giao dịch mới trên cổng
-              tại đây.
-            </p>
-            <div className="admin-order-detail__grid" style={{ marginTop: "1rem" }}>
-              <label className="admin-order-detail__inline-label" style={{ flexDirection: "column", alignItems: "stretch" }}>
-                Trạng thái giao dịch
-                <select
-                  value={form.payment_status}
-                  onChange={(e) => setForm((f) => ({ ...f, payment_status: e.target.value }))}
-                  style={{ marginTop: 6 }}
-                >
-                  <option value="pending">pending</option>
-                  <option value="success">success</option>
-                  <option value="failed">failed</option>
-                  <option value="paid">paid</option>
-                </select>
-              </label>
-              <label className="admin-order-detail__inline-label" style={{ flexDirection: "column", alignItems: "stretch" }}>
-                Mã giao dịch
-                <input
-                  type="text"
-                  value={form.transaction_code}
-                  onChange={(e) => setForm((f) => ({ ...f, transaction_code: e.target.value }))}
-                  placeholder="Mã giao dịch từ cổng / ngân hàng"
-                  style={{ marginTop: 6 }}
-                />
-              </label>
-              <label className="admin-order-detail__inline-label" style={{ flexDirection: "column", alignItems: "stretch" }}>
-                Số tiền đã thu (đ)
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={form.paid_amount}
-                  onChange={(e) => setForm((f) => ({ ...f, paid_amount: e.target.value }))}
-                  placeholder="Để trống nếu chưa xác định"
-                  style={{ marginTop: 6 }}
-                />
-              </label>
-              <label className="admin-order-detail__inline-label" style={{ flexDirection: "column", alignItems: "stretch" }}>
-                Thời gian thanh toán
-                <input
-                  type="datetime-local"
-                  value={form.paid_at}
-                  onChange={(e) => setForm((f) => ({ ...f, paid_at: e.target.value }))}
-                  style={{ marginTop: 6 }}
-                />
-              </label>
-            </div>
-            <div style={{ marginTop: "1.25rem", display: "flex", gap: "0.75rem" }}>
-              <button type="button" className="admin-btn" disabled={saving} onClick={saveEdit}>
-                {saving ? "Đang lưu…" : "Lưu đối soát"}
-              </button>
-              <button type="button" className="admin-btn admin-btn--secondary" disabled={saving} onClick={closeEdit}>
-                Hủy
-              </button>
-            </div>
-          </div>
+      <CoreDialog
+        header={
+          edit ? `Đối soát thanh toán #${edit.payment_id} — đơn #${edit.order_id}` : "Đối soát thanh toán"
+        }
+        visible={edit != null}
+        modal
+        onHide={closeEdit}
+        breakpoints={{ "960px": "100vw" }}
+      >
+        <p className="text-sm text-[#666666] mt-0">
+          Cập nhật dữ liệu đã lưu (mã giao dịch, số tiền, thời điểm, trạng thái). Không thực hiện giao dịch mới trên cổng tại đây.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+          <label className="text-sm font-semibold">
+            Trạng thái giao dịch
+            <select
+              className="admin-form-control w-full mt-1"
+              value={form.payment_status}
+              onChange={(e) => setForm((f) => ({ ...f, payment_status: e.target.value }))}
+            >
+              <option value="pending">pending</option>
+              <option value="success">success</option>
+              <option value="failed">failed</option>
+              <option value="paid">paid</option>
+            </select>
+          </label>
+          <label className="text-sm font-semibold">
+            Mã giao dịch
+            <input
+              className="admin-form-control w-full mt-1"
+              value={form.transaction_code}
+              onChange={(e) => setForm((f) => ({ ...f, transaction_code: e.target.value }))}
+              placeholder="Mã giao dịch từ cổng / ngân hàng"
+            />
+          </label>
+          <label className="text-sm font-semibold">
+            Số tiền đã thu (đ)
+            <input
+              className="admin-form-control w-full mt-1"
+              value={form.paid_amount}
+              onChange={(e) => setForm((f) => ({ ...f, paid_amount: e.target.value }))}
+              placeholder="Để trống nếu chưa xác định"
+            />
+          </label>
+          <label className="text-sm font-semibold">
+            Thời gian thanh toán
+            <input
+              type="datetime-local"
+              className="admin-form-control w-full mt-1"
+              value={form.paid_at}
+              onChange={(e) => setForm((f) => ({ ...f, paid_at: e.target.value }))}
+            />
+          </label>
         </div>
-      ) : null}
 
-      {detailId ? (
-        <div className="admin-modal-backdrop" role="presentation" onClick={closeDetail}>
-          <div
-            className="admin-modal admin-modal--order"
-            role="dialog"
-            aria-labelledby="admin-payment-detail-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button type="button" className="admin-modal__close" aria-label="Đóng" onClick={closeDetail}>
-              ×
-            </button>
-            <h2 id="admin-payment-detail-title" className="admin-modal__title">
-              Chi tiết thanh toán #{detailId}
-            </h2>
-            {detailLoading ? <p>Đang tải…</p> : null}
-            {detailErr ? (
-              <p className="admin-msg admin-msg--err" role="alert">
-                {detailErr}
-              </p>
+        <div className="flex gap-2 mt-4">
+          <CoreButton type="button" disabled={saving} label={saving ? "Đang lưu…" : "Lưu đối soát"} onClick={saveEdit} />
+          <CoreButton type="button" tone="secondary" disabled={saving} label="Hủy" onClick={closeEdit} />
+        </div>
+      </CoreDialog>
+
+      <CoreDialog
+        header={detailId ? `Chi tiết thanh toán #${detailId}` : "Chi tiết thanh toán"}
+        visible={detailId != null}
+        modal
+        onHide={closeDetail}
+        breakpoints={{ "960px": "100vw" }}
+      >
+        {detailLoading ? <div className="text-sm text-[#666666]">Đang tải chi tiết…</div> : null}
+        {detailErr ? <CoreMessage severity="error" text={detailErr} className="mt-2" /> : null}
+        {detail && !detailLoading ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <CoreCard>
+                <div className="font-extrabold mb-2">Giao dịch</div>
+                <ul className="text-sm text-[#334155] space-y-1">
+                  <li>
+                    Phương thức: {payMethodLabel(detail.payment_method)}
+                    {detail.payment_gateway ? ` · ${detail.payment_gateway}` : ""}
+                  </li>
+                  <li>Trạng thái GD: {payRowStatusLabel(detail.payment_status)}</li>
+                  <li>Mã giao dịch: {detail.transaction_code || "—"}</li>
+                  <li>
+                    Số tiền: {money(displayAmount(detail))}đ{detail.currency ? ` (${detail.currency})` : ""}
+                  </li>
+                  <li>Thời gian thanh toán: {detail.paid_at ? fmtDt(detail.paid_at) : "—"}</li>
+                  {detail.is_abnormal ? <li className="text-[#8b2942] font-bold">Bất thường: có — cần đối soát</li> : null}
+                  {detail.error_code ? (
+                    <li>
+                      Mã lỗi: <span className="font-mono">{detail.error_code}</span>
+                    </li>
+                  ) : null}
+                  {detail.buyer_message ? <li>Thông báo cho khách: {detail.buyer_message}</li> : null}
+                  {detail.failure_reason ? <li className="text-[#b00020]">Lỗi / từ chối: {detail.failure_reason}</li> : null}
+                  {detail.refund_amount != null ? <li>Đã hoàn qua cổng: {money(detail.refund_amount)}đ</li> : null}
+                </ul>
+              </CoreCard>
+
+              <CoreCard>
+                <div className="font-extrabold mb-2">Đơn hàng #{detail.order?.order_id}</div>
+                <ul className="text-sm text-[#334155] space-y-1">
+                  <li>Tổng đơn: {money(detail.order?.total_amount)}đ</li>
+                  <li>TT đơn: {orderPayLabel(detail.order?.payment_status)}</li>
+                  <li>
+                    Khách: {detail.order?.user?.full_name} — {detail.order?.user?.email}
+                    {detail.order?.user?.phone ? ` · ${detail.order.user.phone}` : ""}
+                  </li>
+                  <li>
+                    <Link to="/admin/don-hang" className="underline font-semibold">
+                      Mở trang Đơn hàng
+                    </Link>{" "}
+                    <span className="text-[#666666]">(tìm #{detail.order?.order_id})</span>
+                  </li>
+                </ul>
+              </CoreCard>
+            </div>
+
+            {detail.order?.order_items?.length ? (
+              <CoreCard>
+                <div className="font-extrabold mb-2">Sản phẩm trong đơn</div>
+                <ul className="text-sm text-[#334155] space-y-1">
+                  {detail.order.order_items.map((oi) => (
+                    <li key={oi.order_item_id}>
+                      {oi.product?.product_name || "SP"} × {oi.quantity} — {money(oi.line_total)}đ{" "}
+                      {oi.product?.sku ? <span className="text-[#666666] ml-2">{oi.product.sku}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </CoreCard>
             ) : null}
-            {detail && !detailLoading ? (
-              <div className="admin-order-detail">
-                <div className="admin-order-detail__grid">
-                  <div className="admin-order-detail__block">
-                    <strong>Giao dịch</strong>
-                    <ul className="admin-order-detail__list">
-                      <li>
-                        Phương thức: {payMethodLabel(detail.payment_method)}
-                        {detail.payment_gateway ? ` · ${detail.payment_gateway}` : ""}
-                      </li>
-                      <li>Trạng thái GD: {payRowStatusLabel(detail.payment_status)}</li>
-                      <li>Mã giao dịch: {detail.transaction_code || "—"}</li>
-                      <li>
-                        Số tiền: {money(displayAmount(detail))}đ
-                        {detail.currency ? ` (${detail.currency})` : ""}
-                      </li>
-                      <li>Thời gian thanh toán: {detail.paid_at ? fmtDt(detail.paid_at) : "—"}</li>
-                      {detail.is_abnormal ? (
-                        <li style={{ color: "#8b2942" }}>
-                          <strong>Bất thường:</strong> có — cần đối soát
-                        </li>
-                      ) : null}
-                      {detail.error_code ? (
-                        <li>
-                          <strong>Mã lỗi:</strong>{" "}
-                          <span style={{ fontFamily: "monospace" }}>{detail.error_code}</span>
-                        </li>
-                      ) : null}
-                      {detail.buyer_message ? (
-                        <li style={{ maxWidth: 480 }}>
-                          <strong>Thông báo cho khách:</strong> {detail.buyer_message}
-                        </li>
-                      ) : null}
-                      {detail.failure_reason ? (
-                        <li style={{ color: "#b00020" }}>Lỗi / từ chối: {detail.failure_reason}</li>
-                      ) : null}
-                      {detail.refund_amount != null ? <li>Đã hoàn qua cổng: {money(detail.refund_amount)}đ</li> : null}
-                    </ul>
-                  </div>
-                  <div className="admin-order-detail__block">
-                    <strong>Đơn hàng #{detail.order?.order_id}</strong>
-                    <ul className="admin-order-detail__list">
-                      <li>Tổng đơn: {money(detail.order?.total_amount)}đ</li>
-                      <li>TT đơn: {orderPayLabel(detail.order?.payment_status)}</li>
-                      <li>
-                        Khách: {detail.order?.user?.full_name} — {detail.order?.user?.email}
-                        {detail.order?.user?.phone ? ` · ${detail.order.user.phone}` : ""}
-                      </li>
-                      <li>
-                        <Link to="/admin/don-hang" className="admin-shell__link" style={{ fontSize: "0.9rem" }}>
-                          Mở trang Đơn hàng
-                        </Link>{" "}
-                        <span className="admin-page__muted">(tìm #{detail.order?.order_id})</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
 
-                {detail.order?.order_items?.length ? (
-                  <div className="admin-order-detail__block">
-                    <strong>Sản phẩm trong đơn</strong>
-                    <ul className="admin-order-detail__list">
-                      {detail.order.order_items.map((oi) => (
-                        <li key={oi.order_item_id}>
-                          {oi.product?.product_name || "SP"} × {oi.quantity} — {money(oi.line_total)}đ
-                          {oi.product?.sku ? (
-                            <span className="admin-page__muted" style={{ marginLeft: 6 }}>
-                              {oi.product.sku}
-                            </span>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-
-                {detail.order?.refund_requests?.length ? (
-                  <div className="admin-order-detail__block">
-                    <strong>Yêu cầu hoàn tiền</strong>
-                    <ul className="admin-order-detail__list">
-                      {detail.order.refund_requests.map((r) => (
-                        <li key={r.refund_request_id}>
-                          #{r.refund_request_id} · {r.refund_status} · {money(r.refund_amount)}đ
-                        </li>
-                      ))}
-                    </ul>
-                    <Link to="/admin/hoan-tien" className="admin-shell__link" style={{ fontSize: "0.9rem" }}>
-                      Quản lý hoàn tiền
-                    </Link>
-                  </div>
-                ) : null}
-
-                {detail.payment_status_logs?.length ? (
-                  <div className="admin-order-detail__block">
-                    <strong>Nhật ký trạng thái</strong>
-                    <ul className="admin-order-detail__list" style={{ fontSize: "0.85rem" }}>
-                      {detail.payment_status_logs.map((log) => (
-                        <li key={log.log_id}>
-                          {fmtDt(log.created_at)} · {log.from_status ?? "∅"} → {log.to_status} ({log.source})
-                          {log.note ? ` — ${log.note}` : ""}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-
-                {detail.gateway_response != null ? (
-                  <div className="admin-order-detail__block">
-                    <strong>Phản hồi cổng (JSON)</strong>
-                    <pre
-                      style={{
-                        fontSize: "0.72rem",
-                        overflow: "auto",
-                        maxHeight: 160,
-                        background: "#f5f5f5",
-                        padding: "0.5rem",
-                        borderRadius: 4
-                      }}
-                    >
-                      {typeof detail.gateway_response === "object"
-                        ? JSON.stringify(detail.gateway_response, null, 2)
-                        : String(detail.gateway_response)}
-                    </pre>
-                  </div>
-                ) : null}
-
-                {detail.order?.payments?.length > 1 ? (
-                  <div className="admin-order-detail__block">
-                    <strong>Các lần thanh toán cùng đơn</strong>
-                    <ul className="admin-order-detail__list">
-                      {detail.order.payments.map((op) => (
-                        <li key={op.payment_id}>
-                          #{op.payment_id} · {payRowStatusLabel(op.payment_status)} · {op.transaction_code || "—"}
-                          {String(op.payment_id) === String(detail.payment_id) ? " (đang xem)" : ""}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
+            {detail.order?.refund_requests?.length ? (
+              <CoreCard>
+                <div className="font-extrabold mb-2">Yêu cầu hoàn tiền</div>
+                <ul className="text-sm text-[#334155] space-y-1">
+                  {detail.order.refund_requests.map((r) => (
+                    <li key={r.refund_request_id}>
+                      #{r.refund_request_id} · {r.refund_status} · {money(r.refund_amount)}đ
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/admin/hoan-tien" className="underline font-semibold">
+                  Quản lý hoàn tiền
+                </Link>
+              </CoreCard>
             ) : null}
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </CoreDialog>
     </div>
   );
 }

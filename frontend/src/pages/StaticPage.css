@@ -27,3 +27,52 @@
   line-height: 1.6;
   color: #333;
 }
+
+.static-page__html {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: #222;
+}
+
+.static-page__html h1,
+.static-page__html h2,
+.static-page__html h3 {
+  margin: 1.25rem 0 0.5rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #111;
+}
+
+.static-page__html h1 {
+  font-size: 1.35rem;
+}
+
+.static-page__html h2 {
+  font-size: 1.2rem;
+}
+
+.static-page__html h3 {
+  font-size: 1.05rem;
+}
+
+.static-page__html p {
+  margin: 0 0 0.85rem;
+}
+
+.static-page__html ul,
+.static-page__html ol {
+  margin: 0 0 0.85rem;
+  padding-left: 1.35rem;
+}
+
+.static-page__html a {
+  color: #b8860b;
+  text-decoration: underline;
+}
+
+.static-page__html img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 0.5rem 0;
+}

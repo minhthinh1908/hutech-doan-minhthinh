@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet } from "../api/client.js";
 import BuyerSidebar from "../components/BuyerSidebar.jsx";
-import "./BuyerPages.css";
 
 function money(n) {
   return Number(n || 0).toLocaleString("vi-VN");

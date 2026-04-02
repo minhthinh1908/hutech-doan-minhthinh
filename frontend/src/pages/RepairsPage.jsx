@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { apiGet } from "../api/client.js";
 import BuyerSidebar from "../components/BuyerSidebar.jsx";
 import { repairBadgeClass, repairStatusLabel } from "../utils/repairStatusConfig.js";
-import "./BuyerPages.css";
 
 function formatDateTime(d) {
   if (!d) return "—";

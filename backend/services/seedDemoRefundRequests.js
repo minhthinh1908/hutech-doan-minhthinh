@@ -39,11 +39,11 @@ async function seedDemoRefundRequests(prismaClient) {
     return { skipped: true, created: 0 };
   }
 
-  const demoEmail = "demo-buyer@binhdinhtools.local";
+  const demoEmail = "demo-buyer@ecommercetools.local";
   const buyer = await prismaClient.user.findUnique({ where: { email: demoEmail } });
   if (!buyer) {
     console.warn(
-      "[seed-demo-refunds] chưa có khách demo-buyer@binhdinhtools.local — chạy trước: npx prisma db seed (hoặc tạo user buyer)."
+      "[seed-demo-refunds] chưa có khách demo-buyer@ecommercetools.local — chạy trước: npx prisma db seed (hoặc tạo user buyer)."
     );
     return { skipped: true, created: 0, error: "no_demo_buyer" };
   }

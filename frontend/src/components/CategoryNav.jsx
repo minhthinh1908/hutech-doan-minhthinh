@@ -9,7 +9,7 @@ import {
   buildSlugToBrandIdFromList,
   orderedBrandIdsForRoot
 } from "../utils/brandByCategory.js";
-import "./CategoryNav.css";
+import { getBrandAccentKey } from "../utils/brandAccent.js";
 
 function IconGrid() {
   return (
@@ -198,11 +198,12 @@ export default function CategoryNav() {
               {visibleNavBrands.map((b) => {
                 const isActive =
                   activeHomeBrandId != null && String(activeHomeBrandId) === String(b.brandId);
+                const accent = getBrandAccentKey(b.name);
                 return (
                   <li key={b.brandId}>
                     <button
                       type="button"
-                      className={`cat-nav__brand cat-nav__brand--led ${isActive ? "cat-nav__brand--active" : ""}`}
+                      className={`cat-nav__brand cat-nav__brand--led cat-nav__brand--accent-${accent} ${isActive ? "cat-nav__brand--active" : ""}`}
                       title={b.name}
                       onClick={() => navigate(`/?brand=${encodeURIComponent(b.slug)}`)}
                     >
