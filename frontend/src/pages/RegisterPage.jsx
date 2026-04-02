@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { CoreButton, CoreMessage } from "../components/ui/index.js";
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -60,12 +61,10 @@ export default function RegisterPage() {
       <div className="auth-page__box">
         <form className="auth-form" onSubmit={handleSubmit}>
           {guestMessage ? (
-            <p className="auth-form__info" role="status">
-              {guestMessage}
-            </p>
+            <CoreMessage severity="info" text={guestMessage} className="auth-form__msg" />
           ) : null}
-          {error ? <p className="auth-form__error">{error}</p> : null}
-          {success ? <p className="auth-form__success">{success}</p> : null}
+          {error ? <CoreMessage severity="error" text={error} className="auth-form__msg" /> : null}
+          {success ? <CoreMessage severity="success" text={success} className="auth-form__msg" /> : null}
           <label className="auth-form__field">
             <span className="auth-form__label">Họ và tên *</span>
             <input
@@ -109,9 +108,9 @@ export default function RegisterPage() {
               autoComplete="tel"
             />
           </label>
-          <button type="submit" className="auth-form__btn" disabled={submitting}>
+          <CoreButton type="submit" tone="secondary" className="auth-form__btn" disabled={submitting}>
             {submitting ? "Đang gửi…" : "Đăng ký"}
-          </button>
+          </CoreButton>
           <p className="auth-form__hint">
             Đã có tài khoản?{" "}
             <Link to="/dang-nhap" state={{ from: returnFrom, message: guestMessage }}>

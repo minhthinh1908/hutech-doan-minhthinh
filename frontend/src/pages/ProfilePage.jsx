@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import BuyerSidebar from "../components/BuyerSidebar.jsx";
+import { CoreButton, CoreMessage } from "../components/ui/index.js";
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth();
@@ -56,14 +57,10 @@ export default function ProfilePage() {
         <div className="buyer-panel">
           <form className="buyer-form" onSubmit={handleSubmit}>
             {msg ? (
-              <p className="buyer-msg buyer-msg--ok" role="status">
-                {msg}
-              </p>
+              <CoreMessage severity="success" text={msg} />
             ) : null}
             {err ? (
-              <p className="buyer-msg buyer-msg--err" role="alert">
-                {err}
-              </p>
+              <CoreMessage severity="error" text={err} />
             ) : null}
             <label className="buyer-form__field">
               <span className="buyer-form__label">Họ và tên</span>
@@ -108,9 +105,9 @@ export default function ProfilePage() {
                 autoComplete="street-address"
               />
             </label>
-            <button type="submit" className="buyer-form__btn" disabled={saving}>
+            <CoreButton type="submit" tone="secondary" className="buyer-form__btn" disabled={saving}>
               {saving ? "Đang lưu…" : "Lưu thay đổi"}
-            </button>
+            </CoreButton>
           </form>
         </div>
       </div>

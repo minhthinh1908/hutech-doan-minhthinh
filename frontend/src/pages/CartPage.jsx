@@ -4,6 +4,7 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { resolvePublicImageUrl } from "../utils/mapProduct.js";
 import BuyerSidebar from "../components/BuyerSidebar.jsx";
+import { CoreButton, CoreMessage, CoreSelect, CoreSpinner } from "../components/ui/index.js";
 
 function money(n) {
   return Number(n || 0).toLocaleString("vi-VN");
@@ -150,12 +151,12 @@ export default function CartPage() {
       <div className="container buyer-shell">
         <BuyerSidebar />
         <div className="buyer-panel">
-          {loading ? <p>Đang tải…</p> : null}
-          {err ? (
-            <p className="buyer-msg buyer-msg--err" role="alert">
-              {err}
-            </p>
+          {loading ? (
+            <div className="buyer-page__loading">
+              <CoreSpinner style={{ width: "2.15rem", height: "2.15rem" }} strokeWidth="6" />
+            </div>
           ) : null}
+          {err ? <CoreMessage severity="error" text={err} /> : null}
           {!loading && items.length === 0 ? (
             <p>
               Giỏ hàng trống. <Link to="/san-pham">Xem sản phẩm</Link>
@@ -195,25 +196,33 @@ export default function CartPage() {
                   ) : null}
                 </div>
                 <div className="buyer-qty">
-                  <button type="button" aria-label="Giảm" onClick={() => setQty(line.cart_item_id, line.quantity - 1)}>
-                    −
-                  </button>
-                  <span>{line.quantity}</span>
-                  <button
+                  <CoreButton
                     type="button"
+                    tone="ghost"
+                    aria-label="Giảm"
+                    className="buyer-qty__btn"
+                    onClick={() => setQty(line.cart_item_id, line.quantity - 1)}
+                  >
+                    −
+                  </CoreButton>
+                  <span>{line.quantity}</span>
+                  <CoreButton
+                    type="button"
+                    tone="ghost"
                     aria-label="Tăng"
+                    className="buyer-qty__btn"
                     disabled={inactive}
                     onClick={() => setQty(line.cart_item_id, line.quantity + 1)}
                   >
                     +
-                  </button>
+                  </CoreButton>
                 </div>
                 <div>
                   <strong>{money(Number(line.unit_price) * line.quantity)}đ</strong>
                   <div>
-                    <button type="button" className="buyer-btn buyer-btn--danger" onClick={() => removeLine(line.cart_item_id)}>
+                  <CoreButton type="button" tone="danger" className="buyer-btn buyer-btn--danger" onClick={() => removeLine(line.cart_item_id)}>
                       Xóa
-                    </button>
+                    </CoreButton>
                   </div>
                 </div>
               </div>
@@ -244,16 +253,12 @@ export default function CartPage() {
                     }}
                     placeholder="Nhập mã voucher"
                   />
-                  <button type="button" className="buyer-btn buyer-btn--primary" disabled={previewing} onClick={previewVoucher}>
+                  <CoreButton type="button" tone="primary" className="buyer-btn buyer-btn--primary" disabled={previewing} onClick={previewVoucher}>
                     {previewing ? "Đang kiểm tra…" : "Áp dụng / xem trước"}
-                  </button>
+                  </CoreButton>
                 </div>
               </label>
-              {previewErr ? (
-                <p className="buyer-msg buyer-msg--err" role="alert">
-                  {previewErr}
-                </p>
-              ) : null}
+              {previewErr ? <CoreMessage severity="error" text={previewErr} /> : null}
               {preview ? (
                 <div className="buyer-voucher-result buyer-voucher-result--ok" role="status">
                   <div className="buyer-voucher-result__title">Áp dụng voucher thành công!</div>
@@ -280,24 +285,17 @@ export default function CartPage() {
                   </ul>
                 </div>
               ) : null}
-              {checkoutErr ? (
-                <p className="buyer-msg buyer-msg--err" role="alert">
-                  {checkoutErr}
-                </p>
-              ) : null}
+              {checkoutErr ? <CoreMessage severity="error" text={checkoutErr} /> : null}
               <label className="buyer-form__field" style={{ maxWidth: 400 }}>
                 <span className="buyer-form__label">Phương thức thanh toán *</span>
-                <select
-                  className="buyer-form__input"
+                <CoreSelect
+                  className="buyer-cart__select"
                   value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                >
-                  {PAY_METHODS.map((m) => (
-                    <option key={m.value} value={m.value}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(e) => setPaymentMethod(e.value)}
+                  label=""
+                  filter={false}
+                  options={PAY_METHODS.map((m) => ({ label: m.label, value: m.value }))}
+                />
               </label>
               <label className="buyer-form__field" style={{ maxWidth: "100%" }}>
                 <span className="buyer-form__label">Địa chỉ giao hàng *</span>
@@ -314,14 +312,15 @@ export default function CartPage() {
                 Đặt hàng lưu địa chỉ và phương thức thanh toán đã chọn; áp dụng mã voucher nếu hợp lệ. Nếu chọn cổng trực
                 tuyến, bạn sẽ được chuyển sang trang thanh toán (demo) rồi quay lại đơn hàng.
               </p>
-              <button
+              <CoreButton
                 type="button"
+                tone="secondary"
                 className="buyer-form__btn"
                 disabled={checkingOut || hasInactiveLine}
                 onClick={checkout}
               >
                 {checkingOut ? "Đang xử lý…" : paymentMethod === "payment_gateway" ? "Đặt hàng & thanh toán online" : "Đặt hàng"}
-              </button>
+              </CoreButton>
             </div>
           ) : null}
         </div>

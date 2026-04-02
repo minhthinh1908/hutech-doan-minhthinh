@@ -37,34 +37,53 @@
 @media (max-width: 768px) {
   .buyer-shell {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .buyer-panel {
+    padding: 1rem 1rem;
   }
 }
 
+@media (max-width: 640px) {
+  .buyer-shell {
+    gap: 0.75rem;
+  }
+
+  .buyer-panel {
+    padding: 0.85rem 0.85rem;
+  }
+}
+
+/* Sidebar buyer — cùng nhận diện với menu Admin (nền đen, mục active vàng) */
 .buyer-nav {
-  background: var(--bd-white);
-  border: 1px solid #e5e5e5;
-  border-radius: 6px;
-  padding: 0.75rem 0;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  background: var(--bd-black);
+  border: 1px solid #2d2d2d;
+  border-radius: 0.75rem;
+  padding: 0.45rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 
 .buyer-nav a {
   display: block;
-  padding: 0.5rem 1rem;
-  color: inherit;
+  padding: 0.55rem 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
-  font-size: 0.95rem;
-  border-left: 3px solid transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .buyer-nav a:hover {
-  background: #fafafa;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .buyer-nav a.buyer-nav__active {
   font-weight: 700;
-  border-left-color: var(--bd-black);
-  background: #fffef5;
+  background: var(--bd-yellow);
+  color: var(--bd-text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .buyer-panel {
@@ -270,17 +289,16 @@
   gap: 0.35rem;
 }
 
-.buyer-qty button {
+.buyer-qty .buyer-qty__btn {
   width: 2rem;
+  min-width: 2rem;
   height: 2rem;
-  border: 1px solid #ccc;
-  background: #fff;
-  cursor: pointer;
+  padding: 0 !important;
   font-size: 1.1rem;
   line-height: 1;
 }
 
-.buyer-qty button:disabled {
+.buyer-qty .buyer-qty__btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -722,4 +740,115 @@
 .buyer-order-track__step--upcoming .buyer-order-track__label {
   color: #9e9e9e;
   font-weight: 500;
+}
+
+/* Buyer UI aligned with admin visual system */
+.buyer-page {
+  background: var(--bd-gray);
+  color: var(--bd-text);
+}
+
+.buyer-page__hero {
+  background: linear-gradient(135deg, #fff3c4 0%, #fff 100%);
+  border-bottom: 1px solid var(--bd-border);
+}
+
+.buyer-page__title {
+  letter-spacing: var(--bd-tracking-label);
+  color: var(--bd-text);
+}
+
+.buyer-shell {
+  gap: 1.25rem;
+}
+
+.buyer-panel {
+  border: 1px solid var(--bd-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.buyer-form__label {
+  text-transform: uppercase;
+  letter-spacing: var(--bd-tracking-tight-caps);
+  font-size: 0.78rem;
+  color: var(--bd-text);
+}
+
+.buyer-form__input,
+.buyer-form__textarea,
+.buyer-modal textarea {
+  border: 1px solid var(--bd-border);
+  border-radius: 0.65rem;
+  padding: 0.65rem 0.8rem;
+  min-height: 2.6rem;
+}
+
+.buyer-form__input:focus,
+.buyer-form__textarea:focus,
+.buyer-modal textarea:focus {
+  outline: none;
+  border-color: var(--bd-yellow);
+  box-shadow: 0 0 0 3px rgb(255 193 7 / 25%);
+}
+
+.buyer-form__btn {
+  border-radius: 0.65rem;
+}
+
+.buyer-page__loading {
+  display: flex;
+  justify-content: center;
+  padding: 1.25rem 0;
+}
+
+/* Primary action link — matches CoreButton primary */
+.buyer-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.25;
+  background: var(--bd-yellow);
+  color: var(--bd-text);
+  border: 1px solid var(--bd-yellow-dark);
+  text-decoration: none;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.buyer-link-btn:hover {
+  background: var(--bd-yellow-dark);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.08);
+}
+
+.buyer-panel .core-message {
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+.buyer-cart__select > span:first-child:empty {
+  display: none;
+}
+
+.buyer-cart__select .core-select {
+  margin-top: 0;
+}
+
+.buyer-table__btn.core-btn.p-button {
+  padding: 0.38rem 0.65rem !important;
+  font-size: 0.8rem !important;
+}
+
+.buyer-pay-msg {
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.buyer-btn--linkish.core-btn.p-button {
+  box-shadow: none !important;
+  min-height: auto !important;
 }

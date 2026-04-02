@@ -119,3 +119,41 @@
   font-size: 0.9rem;
   color: #1b5e20;
 }
+
+.auth-page {
+  background: var(--bd-gray);
+}
+
+.auth-page__hero {
+  background: linear-gradient(135deg, #fff3c4 0%, #fff 100%);
+  border-bottom: 1px solid var(--bd-border);
+}
+
+.auth-page__title {
+  letter-spacing: var(--bd-tracking-label);
+  color: var(--bd-text);
+}
+
+.auth-form {
+  border-radius: 0.75rem;
+  border-color: var(--bd-border);
+}
+
+.auth-form__label {
+  color: var(--bd-text);
+  letter-spacing: var(--bd-tracking-tight-caps);
+}
+
+.auth-form__input {
+  border: 1px solid var(--bd-border);
+  border-radius: 0.65rem;
+  min-height: 2.6rem;
+}
+
+.auth-form__input:focus {
+  box-shadow: 0 0 0 3px rgb(255 193 7 / 25%);
+}
+
+.auth-form__msg {
+  width: 100%;
+}

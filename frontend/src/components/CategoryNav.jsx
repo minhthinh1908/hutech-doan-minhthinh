@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { apiGet } from "../api/client.js";
+import { CoreSpinner } from "./ui/index.js";
 import { MEGA_COLS, splitIntoColumns } from "../utils/categoryMega.js";
 import { brandToUrlSlug, resolveBrandParam } from "../utils/brandSlug.js";
 import {
@@ -28,6 +29,22 @@ export default function CategoryNav() {
   const [megaOpen, setMegaOpen] = useState(false);
   const [activeRootId, setActiveRootId] = useState(null);
   const leaveTimer = useRef(null);
+  const navRef = useRef(null);
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 640px)");
+    const sync = () => setIsMobile(Boolean(mql.matches));
+    sync();
+    if (typeof mql.addEventListener === "function") {
+      mql.addEventListener("change", sync);
+      return () => mql.removeEventListener("change", sync);
+    }
+    // Safari fallback
+    mql.addListener(sync);
+    return () => mql.removeListener(sync);
+  }, []);
 
   const [brands, setBrands] = useState([]);
   const [byRoot, setByRoot] = useState({});
@@ -74,6 +91,24 @@ export default function CategoryNav() {
     });
   }, [tree, megaOpen]);
 
+  useEffect(() => {
+    if (!megaOpen || !isMobile) return undefined;
+    function onDocDown(e) {
+      const target = e?.target;
+      if (!navRef.current) return;
+      if (target && navRef.current.contains(target)) return;
+      setMegaOpen(false);
+      setActiveRootId(null);
+    }
+
+    document.addEventListener("mousedown", onDocDown);
+    document.addEventListener("touchstart", onDocDown, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", onDocDown);
+      document.removeEventListener("touchstart", onDocDown);
+    };
+  }, [megaOpen, isMobile]);
+
   const displayOrderIds = useMemo(
     () => buildDisplayOrderBrandIds(brands, slugToBrandId),
     [brands, slugToBrandId]
@@ -111,6 +146,7 @@ export default function CategoryNav() {
   }
 
   function handleEnterMega() {
+    if (isMobile) return;
     clearLeaveTimer();
     setMegaOpen(true);
     if (tree.length) {
@@ -119,6 +155,7 @@ export default function CategoryNav() {
   }
 
   function handleLeaveMega() {
+    if (isMobile) return;
     clearLeaveTimer();
     leaveTimer.current = window.setTimeout(() => {
       setMegaOpen(false);
@@ -131,14 +168,36 @@ export default function CategoryNav() {
   const columns = splitIntoColumns(subItems, MEGA_COLS);
 
   return (
-    <div className="cat-nav">
+    <div className="cat-nav" ref={navRef}>
       <div className="cat-nav__inner container">
         <div className="cat-nav__mega" onMouseEnter={handleEnterMega} onMouseLeave={handleLeaveMega}>
-          <button type="button" className="cat-nav__trigger" aria-expanded={megaOpen} aria-haspopup="true">
+          <button
+            type="button"
+            className="cat-nav__trigger"
+            aria-expanded={megaOpen}
+            aria-haspopup="true"
+            onClick={() => {
+              if (!isMobile) return;
+              clearLeaveTimer();
+              setMegaOpen((prev) => {
+                const next = !prev;
+                if (!next) setActiveRootId(null);
+                if (next) setActiveRootId(null);
+                return next;
+              });
+            }}
+          >
             <IconGrid />
             <span>DANH MỤC SẢN PHẨM</span>
           </button>
 
+          {megaOpen && loading ? (
+            <div className="cat-nav__dropdown cat-nav__dropdown--solo" role="status" aria-live="polite">
+              <div className="cat-nav__mega-loading">
+                <CoreSpinner style={{ width: "2rem", height: "2rem" }} strokeWidth="6" />
+              </div>
+            </div>
+          ) : null}
           {megaOpen && !loading && tree.length > 0 ? (
             <div className="cat-nav__dropdown" role="region" aria-label="Danh mục sản phẩm">
               <div className="cat-nav__mega-sidebar">
@@ -152,6 +211,10 @@ export default function CategoryNav() {
                       className={`cat-nav__mega-parent ${active ? "cat-nav__mega-parent--active" : ""}`}
                       aria-current={active ? "true" : undefined}
                       onMouseEnter={() => setActiveRootId(id)}
+                      onClick={() => {
+                        if (!isMobile) return;
+                        setActiveRootId(id);
+                      }}
                     >
                       <span className="cat-nav__mega-dash" aria-hidden />
                       {root.category_name}

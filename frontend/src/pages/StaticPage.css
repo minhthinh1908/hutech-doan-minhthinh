@@ -1,20 +1,22 @@
 .static-page {
   padding-bottom: 3rem;
+  background: var(--bd-gray);
 }
 
 .static-page__hero {
-  background: linear-gradient(135deg, var(--bd-yellow) 0%, #ffe066 100%);
+  background: linear-gradient(135deg, #fff3c4 0%, #fff 100%);
   padding: 1.5rem 0;
   margin-bottom: 1.25rem;
-  border-bottom: 3px solid var(--bd-black);
+  border-bottom: 1px solid var(--bd-border);
 }
 
 .static-page__title {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--bd-tracking-label);
   text-transform: uppercase;
+  color: var(--bd-text);
 }
 
 .static-page__body {
@@ -66,7 +68,8 @@
 }
 
 .static-page__html a {
-  color: #b8860b;
+  color: var(--bd-black);
+  font-weight: 600;
   text-decoration: underline;
 }
 

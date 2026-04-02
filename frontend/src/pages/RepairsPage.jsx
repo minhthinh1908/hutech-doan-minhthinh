@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiGet } from "../api/client.js";
 import BuyerSidebar from "../components/BuyerSidebar.jsx";
+import { CoreButton, CoreMessage, CoreSpinner, CoreTable } from "../components/ui/index.js";
 import { repairBadgeClass, repairStatusLabel } from "../utils/repairStatusConfig.js";
 
 function formatDateTime(d) {
@@ -58,7 +59,7 @@ export default function RepairsPage() {
     return () => window.removeEventListener("bd-repair-updated", onUp);
   }, [load]);
 
-  async function openDetail(id) {
+  const openDetail = useCallback(async (id) => {
     setDetailId(id);
     setDetail(null);
     setDetailLoading(true);
@@ -70,7 +71,7 @@ export default function RepairsPage() {
     } finally {
       setDetailLoading(false);
     }
-  }
+  }, []);
 
   function closeDetail() {
     setDetailId(null);
@@ -86,6 +87,45 @@ export default function RepairsPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [detailId]);
 
+  const repairColumns = useMemo(
+    () => [
+      { key: "rid", header: "Mã", field: "repair_request_id", body: (r) => `#${r.repair_request_id}` },
+      { key: "wid", header: "Mã BH", field: "warranty_id", body: (r) => `#${r.warranty_id}` },
+      {
+        key: "pn",
+        header: "Sản phẩm",
+        body: (r) => r.warranty?.order_item?.product?.product_name || "—"
+      },
+      {
+        key: "rd",
+        header: "Ngày gửi",
+        field: "request_date",
+        body: (r) => formatDateTime(r.request_date)
+      },
+      {
+        key: "st",
+        header: "Trạng thái",
+        field: "repair_status",
+        body: (r) => <span className={repairBadgeClass(r.repair_status)}>{repairStatusLabel(r.repair_status)}</span>
+      },
+      {
+        key: "act",
+        header: "Hành động",
+        body: (r) => (
+          <CoreButton
+            type="button"
+            tone="ghost"
+            className="buyer-table__btn buyer-btn--linkish"
+            onClick={() => openDetail(r.repair_request_id)}
+          >
+            Chi tiết
+          </CoreButton>
+        )
+      }
+    ],
+    [openDetail]
+  );
+
   return (
     <div className="buyer-page">
       <div className="buyer-page__hero">
@@ -99,50 +139,26 @@ export default function RepairsPage() {
       <div className="container buyer-shell">
         <BuyerSidebar />
         <div className="buyer-panel">
-          {loading ? <div className="buyer-page__loading">Đang tải…</div> : null}
-          {err ? (
-            <p className="buyer-msg buyer-msg--err" role="alert">
-              {err}
-            </p>
+          {loading ? (
+            <div className="buyer-page__loading">
+              <CoreSpinner style={{ width: "2.15rem", height: "2.15rem" }} strokeWidth="6" />
+            </div>
           ) : null}
+          {err ? <CoreMessage severity="error" text={err} /> : null}
           {!loading && items.length === 0 ? (
             <p className="buyer-muted">Chưa có yêu cầu nào. Gửi từ trang «Xem bảo hành» khi phiếu còn hiệu lực.</p>
           ) : null}
           {!loading && items.length > 0 ? (
             <div className="buyer-table-wrap">
-              <table className="buyer-table">
-                <thead>
-                  <tr>
-                    <th>Mã</th>
-                    <th>Mã BH</th>
-                    <th>Sản phẩm</th>
-                    <th>Ngày gửi</th>
-                    <th>Trạng thái</th>
-                    <th>Hành động</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((r) => {
-                    const pname = r.warranty?.order_item?.product?.product_name || "—";
-                    return (
-                      <tr key={r.repair_request_id}>
-                        <td>#{r.repair_request_id}</td>
-                        <td>#{r.warranty_id}</td>
-                        <td>{pname}</td>
-                        <td>{formatDateTime(r.request_date)}</td>
-                        <td>
-                          <span className={repairBadgeClass(r.repair_status)}>{repairStatusLabel(r.repair_status)}</span>
-                        </td>
-                        <td>
-                          <button type="button" className="buyer-btn buyer-btn--link" onClick={() => openDetail(r.repair_request_id)}>
-                            Chi tiết
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <CoreTable
+                value={items}
+                dataKey="repair_request_id"
+                columns={repairColumns}
+                paginator={items.length > 12}
+                rows={12}
+                emptyMessage="Không có yêu cầu."
+                tableStyle={{ minWidth: "800px" }}
+              />
             </div>
           ) : null}
         </div>
@@ -152,7 +168,11 @@ export default function RepairsPage() {
         <div className="buyer-modal-backdrop" role="presentation" onClick={(e) => e.target === e.currentTarget && closeDetail()}>
           <div className="buyer-modal buyer-modal--wide" role="dialog" aria-modal="true" aria-labelledby="buyer-repair-detail-title" onClick={(e) => e.stopPropagation()}>
             <h3 id="buyer-repair-detail-title">Chi tiết yêu cầu #{detailId}</h3>
-            {detailLoading ? <p className="buyer-muted">Đang tải…</p> : null}
+            {detailLoading ? (
+              <div className="buyer-page__loading">
+                <CoreSpinner style={{ width: "1.85rem", height: "1.85rem" }} strokeWidth="6" />
+              </div>
+            ) : null}
             {!detailLoading && detail ? (
               <div className="buyer-repair-detail">
                 <div className="buyer-repair-detail__row">
@@ -208,13 +228,11 @@ export default function RepairsPage() {
                 ) : null}
               </div>
             ) : null}
-            {!detailLoading && !detail ? (
-              <p className="buyer-msg buyer-msg--err">Không tải được chi tiết.</p>
-            ) : null}
+            {!detailLoading && !detail ? <CoreMessage severity="error" text="Không tải được chi tiết." /> : null}
             <div className="buyer-actions" style={{ marginTop: "1rem" }}>
-              <button type="button" className="buyer-btn" onClick={closeDetail}>
+              <CoreButton type="button" tone="ghost" onClick={closeDetail}>
                 Đóng
-              </button>
+              </CoreButton>
             </div>
           </div>
         </div>

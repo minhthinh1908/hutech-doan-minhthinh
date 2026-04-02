@@ -1,8 +1,8 @@
 .site-footer {
   margin-top: auto;
-  background: #0a0a0a;
+  background: var(--bd-black);
   color: #e8e8e8;
-  border-top: 1px solid #222;
+  border-top: 3px solid var(--bd-yellow);
 }
 
 .site-footer__main {
@@ -37,7 +37,7 @@
   font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: 0.04em;
-  color: #ffd400;
+  color: var(--bd-yellow);
   text-transform: uppercase;
 }
 
@@ -152,7 +152,7 @@
 }
 
 .site-footer__policy-link:hover {
-  color: #ffd400;
+  color: var(--bd-yellow);
 }
 
 .site-footer__policy-text {

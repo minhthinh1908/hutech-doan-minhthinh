@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet } from "../api/client.js";
 import BuyerSidebar from "../components/BuyerSidebar.jsx";
+import { CoreMessage, CoreSpinner, CoreTable } from "../components/ui/index.js";
 import { paymentStatusBuyerLabel } from "../utils/paymentStatusLabels.js";
 
 function money(n) {
@@ -43,6 +44,48 @@ export default function OrdersPage() {
     };
   }, []);
 
+  const orderColumns = useMemo(
+    () => [
+      { key: "oid", header: "Mã đơn", field: "order_id", sortable: true, body: (row) => `#${row.order_id}` },
+      {
+        key: "dt",
+        header: "Ngày",
+        field: "order_date",
+        sortable: true,
+        body: (row) => (row.order_date ? new Date(row.order_date).toLocaleString("vi-VN") : "—")
+      },
+      {
+        key: "tot",
+        header: "Tổng",
+        field: "total_amount",
+        sortable: true,
+        body: (row) => `${money(row.total_amount)}đ`
+      },
+      {
+        key: "st",
+        header: "Trạng thái đơn",
+        field: "order_status",
+        body: (row) => orderStatusVi(row.order_status)
+      },
+      {
+        key: "pay",
+        header: "Thanh toán",
+        field: "payment_status",
+        body: (row) => paymentStatusBuyerLabel(row.payment_status)
+      },
+      {
+        key: "go",
+        header: "",
+        body: (row) => (
+          <Link className="buyer-link-btn" to={`/don-hang/${row.order_id}`}>
+            Chi tiết
+          </Link>
+        )
+      }
+    ],
+    []
+  );
+
   return (
     <div className="buyer-page">
       <div className="buyer-page__hero">
@@ -57,45 +100,26 @@ export default function OrdersPage() {
       <div className="container buyer-shell">
         <BuyerSidebar />
         <div className="buyer-panel">
-          {loading ? <p>Đang tải…</p> : null}
-          {err ? (
-            <p className="buyer-msg buyer-msg--err" role="alert">
-              {err}
-            </p>
+          {loading ? (
+            <div className="buyer-page__loading">
+              <CoreSpinner style={{ width: "2.15rem", height: "2.15rem" }} strokeWidth="6" />
+            </div>
           ) : null}
+          {err ? <CoreMessage severity="error" text={err} /> : null}
           {!loading && orders.length === 0 ? (
             <p className="buyer-muted">Bạn chưa có đơn hàng nào. Sau khi đặt hàng, mã đơn và trạng thái sẽ hiển thị tại đây.</p>
           ) : null}
           {orders.length > 0 ? (
             <div className="buyer-table-wrap">
-              <table className="buyer-table">
-                <thead>
-                  <tr>
-                    <th>Mã đơn</th>
-                    <th>Ngày</th>
-                    <th>Tổng</th>
-                    <th>Trạng thái đơn</th>
-                    <th>Thanh toán</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((o) => (
-                    <tr key={o.order_id}>
-                      <td>#{o.order_id}</td>
-                      <td>{o.order_date ? new Date(o.order_date).toLocaleString("vi-VN") : "—"}</td>
-                      <td>{money(o.total_amount)}đ</td>
-                      <td>{orderStatusVi(o.order_status)}</td>
-                      <td>{paymentStatusBuyerLabel(o.payment_status)}</td>
-                      <td>
-                        <Link className="buyer-btn buyer-btn--primary" to={`/don-hang/${o.order_id}`}>
-                          Chi tiết
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <CoreTable
+                value={orders}
+                dataKey="order_id"
+                columns={orderColumns}
+                paginator={orders.length > 10}
+                rows={10}
+                emptyMessage="Không có đơn hàng."
+                tableStyle={{ minWidth: "720px" }}
+              />
             </div>
           ) : null}
         </div>

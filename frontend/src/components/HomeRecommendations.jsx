@@ -3,11 +3,13 @@ import { apiGet } from "../api/client.js";
 import { mapApiProductToCard } from "../utils/mapProduct.js";
 import { getRecentlyViewedSnapshots } from "../utils/recentlyViewed.js";
 import ProductCard from "./ProductCard.jsx";
+import { CoreMessage, CoreSpinner } from "./ui/index.js";
 
 export default function HomeRecommendations() {
   const [personal, setPersonal] = useState([]);
   const [recommended, setRecommended] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [recError, setRecError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -58,14 +60,19 @@ export default function HomeRecommendations() {
           sort: "price_desc"
         });
         if (cancelled) return;
+        setRecError("");
         setRecommended((data.items || []).map(mapApiProductToCard));
-      } catch {
-        if (!cancelled) setRecommended([]);
+      } catch (e) {
+        if (!cancelled) {
+          setRecommended([]);
+          setRecError(e?.message || "Không tải được danh sách gợi ý.");
+        }
       }
     }
 
     (async () => {
       setLoading(true);
+      setRecError("");
       await Promise.all([loadPersonal(), loadRecommended()]);
       if (!cancelled) setLoading(false);
     })();
@@ -85,7 +92,9 @@ export default function HomeRecommendations() {
           </h2>
           <p className="home-rec__sub">Dựa trên sản phẩm bạn đã xem (dữ liệu từ cửa hàng).</p>
           {loading ? (
-            <p className="home-rec__sub">Đang tải…</p>
+            <div className="home-rec__loading" aria-busy="true">
+              <CoreSpinner style={{ width: "2rem", height: "2rem" }} strokeWidth="6" />
+            </div>
           ) : personal.length === 0 ? (
             <p className="home-rec__sub">Chưa có gợi ý — xem thêm sản phẩm trong danh mục.</p>
           ) : (
@@ -108,7 +117,11 @@ export default function HomeRecommendations() {
           </h2>
           <p className="home-rec__sub">Một số sản phẩm nổi bật theo mức giá.</p>
           {loading ? (
-            <p className="home-rec__sub">Đang tải…</p>
+            <div className="home-rec__loading" aria-busy="true">
+              <CoreSpinner style={{ width: "2rem", height: "2rem" }} strokeWidth="6" />
+            </div>
+          ) : recError ? (
+            <CoreMessage severity="error" text={recError} />
           ) : recommended.length === 0 ? (
             <p className="home-rec__sub">Hiện chưa có sản phẩm.</p>
           ) : (

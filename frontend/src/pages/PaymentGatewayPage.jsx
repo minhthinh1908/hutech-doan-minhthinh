@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { apiGet, apiPost } from "../api/client.js";
+import { CoreButton, CoreMessage, CoreSpinner } from "../components/ui/index.js";
 
 function money(n) {
   return Number(n || 0).toLocaleString("vi-VN");
@@ -65,8 +66,8 @@ export default function PaymentGatewayPage() {
 
   if (loading) {
     return (
-      <div className="buyer-page container">
-        <p>Đang tải cổng thanh toán (demo)…</p>
+      <div className="buyer-page container buyer-page__loading">
+        <CoreSpinner style={{ width: "2.15rem", height: "2.15rem" }} strokeWidth="6" />
       </div>
     );
   }
@@ -74,10 +75,8 @@ export default function PaymentGatewayPage() {
   if (err || !session) {
     return (
       <div className="buyer-page container">
-        <p className="buyer-msg buyer-msg--err" role="alert">
-          {err || "Không có dữ liệu phiên thanh toán."}
-        </p>
-        <p>
+        <CoreMessage severity="error" text={err || "Không có dữ liệu phiên thanh toán."} />
+        <p style={{ marginTop: "1rem" }}>
           <Link to={orderId ? `/don-hang/${orderId}` : "/don-hang"}>← Quay lại đơn hàng</Link>
         </p>
       </div>
@@ -105,30 +104,22 @@ export default function PaymentGatewayPage() {
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-          <button type="button" className="buyer-form__btn" disabled={busy} onClick={() => complete("success")}>
+          <CoreButton type="button" tone="secondary" disabled={busy} onClick={() => complete("success")}>
             Thanh toán thành công
-          </button>
-          <button type="button" className="buyer-btn" disabled={busy} onClick={() => complete("failed")}>
+          </CoreButton>
+          <CoreButton type="button" tone="ghost" disabled={busy} onClick={() => complete("failed")}>
             Thanh toán thất bại
-          </button>
-          <button type="button" className="buyer-btn" disabled={busy} onClick={() => complete("cancelled")}>
+          </CoreButton>
+          <CoreButton type="button" tone="danger" disabled={busy} onClick={() => complete("cancelled")}>
             Hủy thanh toán
-          </button>
-          <button type="button" className="buyer-btn" disabled={busy} onClick={() => complete("pending")}>
+          </CoreButton>
+          <CoreButton type="button" tone="ghost" disabled={busy} onClick={() => complete("pending")}>
             Chờ xác nhận (pending)
-          </button>
+          </CoreButton>
         </div>
 
-        {lastErr ? (
-          <p className="buyer-msg buyer-msg--err" role="alert" style={{ marginTop: "1rem" }}>
-            {lastErr}
-          </p>
-        ) : null}
-        {lastMsg ? (
-          <p className="buyer-msg buyer-msg--ok" role="status" style={{ marginTop: "1rem" }}>
-            {lastMsg}
-          </p>
-        ) : null}
+        {lastErr ? <CoreMessage severity="error" text={lastErr} className="buyer-pay-msg" /> : null}
+        {lastMsg ? <CoreMessage severity="success" text={lastMsg} className="buyer-pay-msg" /> : null}
 
         <p style={{ marginTop: "1.5rem" }}>
           <Link to={orderId ? `/don-hang/${orderId}` : "/don-hang"}>← Quay lại đơn (không mô phỏng kết quả)</Link>

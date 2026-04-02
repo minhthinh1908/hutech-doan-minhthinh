@@ -26,6 +26,8 @@ function PolicyLink({ item }) {
 export default function SiteFooter() {
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
+  const fallbackHcmMap =
+    "https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d15679.138944254515!2d106.627968!3d10.751067!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752d003c905679%3A0x5a5b4ce804d42864!2zQsOsbmggxJDhu4tuaCBUb29scyBDTiBIQ00!5e0!3m2!1sen!2sus!4v1775135059204!5m2!1sen!2sus";
 
   useEffect(() => {
     let cancelled = false;
@@ -100,13 +102,15 @@ export default function SiteFooter() {
           </div>
 
           <div className="site-footer__col site-footer__col--maps">
-            {data?.branch1_map_embed_url ? (
+            {data?.branch1_map_embed_url || !data?.branch2_map_embed_url ? (
               <div className="site-footer__map-wrap">
-                {data.branch1_label ? <p className="site-footer__map-title">{data.branch1_label.replace(/:$/, "")}</p> : null}
+                {data?.branch1_label ? (
+                  <p className="site-footer__map-title">{data.branch1_label.replace(/:$/, "")}</p>
+                ) : null}
                 <div className="site-footer__map-frame">
                   <iframe
                     title="Bản đồ chi nhánh 1"
-                    src={data.branch1_map_embed_url}
+                    src={data?.branch1_map_embed_url || fallbackHcmMap}
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                     allowFullScreen
@@ -116,20 +120,19 @@ export default function SiteFooter() {
             ) : null}
             {data?.branch2_map_embed_url ? (
               <div className="site-footer__map-wrap">
-                {data.branch2_label ? <p className="site-footer__map-title">{data.branch2_label.replace(/:$/, "")}</p> : null}
+                {data?.branch2_label ? (
+                  <p className="site-footer__map-title">{data.branch2_label.replace(/:$/, "")}</p>
+                ) : null}
                 <div className="site-footer__map-frame">
                   <iframe
                     title="Bản đồ chi nhánh 2"
-                    src={data.branch2_map_embed_url}
+                    src={data?.branch2_map_embed_url}
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                     allowFullScreen
                   />
                 </div>
               </div>
-            ) : null}
-            {!data?.branch1_map_embed_url && !data?.branch2_map_embed_url && !err ? (
-              <p className="site-footer__muted">Bản đồ đang được cập nhật.</p>
             ) : null}
           </div>
 

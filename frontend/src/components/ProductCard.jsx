@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiPost } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { CoreButton, CoreCard } from "./ui/index.js";
 
 function formatMoney(n) {
   if (n == null || Number.isNaN(n)) return "";
@@ -23,10 +25,12 @@ export default function ProductCard({ product, compact = false }) {
   const navigate = useNavigate();
   const pid = product.id ?? product.product_id;
   const detailTo = pid != null ? `/san-pham/${pid}` : null;
+  const [addErr, setAddErr] = useState("");
 
   async function handleAddToCart(e) {
     e.preventDefault();
     e.stopPropagation();
+    setAddErr("");
     if (!detailTo || contactOnly) return;
     if (!user) {
       navigate("/dang-nhap", {
@@ -51,7 +55,7 @@ export default function ProductCard({ product, compact = false }) {
           }
         });
       } else {
-        window.alert(msg || "Không thêm được vào giỏ. Thử mở trang chi tiết sản phẩm từ danh mục hệ thống.");
+        setAddErr(msg || "Không thêm được vào giỏ. Thử mở trang chi tiết sản phẩm từ danh mục hệ thống.");
       }
     }
   }
@@ -90,7 +94,7 @@ export default function ProductCard({ product, compact = false }) {
   );
 
   return (
-    <article
+    <CoreCard
       className={`product-card ${compact ? "product-card--compact" : ""}${hot && flashSale ? " product-card--dual-badges" : ""}`}
     >
       {detailTo ? (
@@ -102,10 +106,11 @@ export default function ProductCard({ product, compact = false }) {
       )}
 
       {!contactOnly ? (
-        <button type="button" className="product-card__btn" onClick={handleAddToCart}>
+        <CoreButton type="button" tone="secondary" className="product-card__btn" onClick={handleAddToCart}>
           Thêm vào giỏ
-        </button>
+        </CoreButton>
       ) : null}
-    </article>
+      {addErr ? <p className="product-card__err">{addErr}</p> : null}
+    </CoreCard>
   );
 }

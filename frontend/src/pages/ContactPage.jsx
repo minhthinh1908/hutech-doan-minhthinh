@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CoreButton, CoreMessage } from "../components/ui/index.js";
 
 export default function ContactPage() {
   const [sent, setSent] = useState(false);
@@ -67,11 +68,13 @@ export default function ContactPage() {
             </article>
           </div>
 
-          <div className="contact-page__map" aria-label="Bản đồ (placeholder)">
+          <div className="contact-page__map" aria-label="Bản đồ chi nhánh HCM">
             <iframe
-              title="Bản đồ khu vực cửa hàng"
-              src="https://www.openstreetmap.org/export/embed.html?bbox=108.95%2C13.65%2C109.35%2C14.05&layer=mapnik"
+              title="Bản đồ Bình Định Tools CN HCM"
+              src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d15679.138944254515!2d106.627968!3d10.751067!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752d003c905679%3A0x5a5b4ce804d42864!2zQsOsbmggxJDhu4tuaCBUb29scyBDTiBIQ00!5e0!3m2!1sen!2sus!4v1775135059204!5m2!1sen!2sus"
+              allowFullScreen
               loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
             />
           </div>
         </section>
@@ -84,22 +87,26 @@ export default function ContactPage() {
 
           {sent ? (
             <div className="contact-page__success" role="status">
-              <p>Cảm ơn bạn! Chúng tôi đã nhận được nội dung (demo — chưa gửi lên server).</p>
-              <button
+              <CoreMessage
+                severity="success"
+                text="Cảm ơn bạn! Chúng tôi đã nhận được nội dung (demo — chưa gửi lên server)."
+              />
+              <CoreButton
                 type="button"
-                className="contact-page__btn contact-page__btn--secondary"
+                tone="primary"
+                className="contact-page__success-btn"
                 onClick={() => {
                   setSent(false);
                   setForm({ name: "", email: "", phone: "", message: "" });
                 }}
               >
                 Gửi tin khác
-              </button>
+              </CoreButton>
             </div>
           ) : (
             <form className="contact-form" onSubmit={handleSubmit} noValidate>
               <label className="contact-form__field">
-                <span className="contact-form__label">Họ và tên *</span>
+                <span className="admin-form-label">Họ và tên *</span>
                 <input
                   type="text"
                   name="name"
@@ -107,11 +114,11 @@ export default function ContactPage() {
                   autoComplete="name"
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  className="contact-form__input"
+                  className="admin-form-control"
                 />
               </label>
               <label className="contact-form__field">
-                <span className="contact-form__label">Email *</span>
+                <span className="admin-form-label">Email *</span>
                 <input
                   type="email"
                   name="email"
@@ -119,35 +126,35 @@ export default function ContactPage() {
                   autoComplete="email"
                   value={form.email}
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                  className="contact-form__input"
+                  className="admin-form-control"
                 />
               </label>
               <label className="contact-form__field">
-                <span className="contact-form__label">Điện thoại</span>
+                <span className="admin-form-label">Điện thoại</span>
                 <input
                   type="tel"
                   name="phone"
                   autoComplete="tel"
                   value={form.phone}
                   onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                  className="contact-form__input"
+                  className="admin-form-control"
                 />
               </label>
               <label className="contact-form__field">
-                <span className="contact-form__label">Nội dung *</span>
+                <span className="admin-form-label">Nội dung *</span>
                 <textarea
                   name="message"
                   required
                   rows={5}
                   value={form.message}
                   onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
-                  className="contact-form__textarea"
+                  className="admin-form-control contact-form__textarea"
                   placeholder="Nhu cầu mua hàng, báo giá, bảo hành..."
                 />
               </label>
-              <button type="submit" className="contact-page__btn contact-page__btn--primary">
+              <CoreButton type="submit" tone="secondary">
                 Gửi liên hệ
-              </button>
+              </CoreButton>
             </form>
           )}
         </section>

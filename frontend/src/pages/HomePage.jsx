@@ -11,6 +11,7 @@ import { getBrandAccentKey } from "../utils/brandAccent.js";
 import { buildDisplayOrderBrandIds, orderedBrandIdsForRoot } from "../utils/brandByCategory.js";
 import { buildHeroSequence } from "../data/homeBrandShowcase.js";
 import { MEGA_COLS, splitIntoColumns } from "../utils/categoryMega.js";
+import { CoreSpinner } from "../components/ui/index.js";
 
 const SIDEBAR_ITEMS = [
   "MÁY MÓC CẦM TAY",
@@ -556,9 +557,9 @@ export default function HomePage() {
             </button>
             <div className="home__carousel" ref={carouselRef} tabIndex={0}>
               {loadCarousel ? (
-                <p className="home__empty-msg" style={{ padding: "1rem" }}>
-                  Đang tải sản phẩm…
-                </p>
+                <div className="home__carousel-loading" aria-busy="true">
+                  <CoreSpinner style={{ width: "2rem", height: "2rem" }} strokeWidth="6" />
+                </div>
               ) : carouselErr ? (
                 <p className="home__empty-msg" role="alert">
                   Không tải được danh sách. Vui lòng thử lại sau.
@@ -620,7 +621,9 @@ export default function HomePage() {
               Hiện chưa có sản phẩm.
             </p>
           ) : loadGrid ? (
-            <p className="home__empty-msg">Đang tải…</p>
+            <div className="home__grid-loading" aria-busy="true">
+              <CoreSpinner style={{ width: "2rem", height: "2rem" }} strokeWidth="6" />
+            </div>
           ) : gridErr ? (
             <p className="home__empty-msg" role="alert">
               Không tải được danh sách. Vui lòng thử lại sau.

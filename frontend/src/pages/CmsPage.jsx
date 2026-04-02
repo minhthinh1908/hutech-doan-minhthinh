@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import DOMPurify from "dompurify";
 import { useParams } from "react-router-dom";
 import { apiGet } from "../api/client.js";
+import { CoreMessage, CoreSpinner } from "../components/ui/index.js";
 import StaticPage from "./StaticPage.jsx";
 
 export default function CmsPage({ slug, fallbackTitle }) {
@@ -36,7 +37,9 @@ export default function CmsPage({ slug, fallbackTitle }) {
   if (loading) {
     return (
       <StaticPage title={fallbackTitle || "Nội dung"}>
-        Đang tải nội dung…
+        <div className="static-page__loading">
+          <CoreSpinner style={{ width: "2.2rem", height: "2.2rem" }} strokeWidth="6" />
+        </div>
       </StaticPage>
     );
   }
@@ -44,7 +47,10 @@ export default function CmsPage({ slug, fallbackTitle }) {
   if (err || !data) {
     return (
       <StaticPage title={title || "Nội dung"}>
-        {err || "Chưa có nội dung. Vui lòng quay lại sau hoặc liên hệ hotline."}
+        <CoreMessage
+          severity="error"
+          text={err || "Chưa có nội dung. Vui lòng quay lại sau hoặc liên hệ hotline."}
+        />
       </StaticPage>
     );
   }
@@ -53,7 +59,7 @@ export default function CmsPage({ slug, fallbackTitle }) {
   if (!String(safe).trim()) {
     return (
       <StaticPage title={title}>
-        Nội dung trang đang được cập nhật. Vui lòng quay lại sau hoặc liên hệ hotline.
+        <CoreMessage severity="info" text="Nội dung trang đang được cập nhật. Vui lòng quay lại sau hoặc liên hệ hotline." />
       </StaticPage>
     );
   }

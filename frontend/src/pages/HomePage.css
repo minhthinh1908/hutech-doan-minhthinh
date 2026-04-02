@@ -1,8 +1,8 @@
 /* Trang chủ — gọn, dễ nhìn: nền trung tính, một điểm nhấn vàng nhẹ */
 
 .home {
-  --home-surface: #fafafa;
-  --home-border: #e8e8ea;
+  --home-surface: var(--bd-gray);
+  --home-border: var(--bd-border);
   --home-text-muted: #5c5c66;
   --home-sidebar-bg: #1a1b1e;
   --home-sidebar-hover: #25262b;
@@ -269,6 +269,16 @@
 }
 
 @media (max-width: 640px) {
+  .home__hero {
+    padding-top: 0.75rem;
+    padding-bottom: 1.1rem;
+    gap: 0.75rem;
+  }
+
+  .home__hero-showcase {
+    gap: 0.75rem;
+  }
+
   .home__hero-carousel,
   .home__banner-img--hero {
     min-height: 240px;
@@ -278,6 +288,16 @@
     width: 38px;
     height: 38px;
     font-size: 1.25rem;
+  }
+
+  .home__product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .home__product-grid--tight {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem;
   }
 }
 
@@ -471,7 +491,7 @@
 .home__featured {
   margin-top: 0.5rem;
   padding: 1.75rem 0 2rem;
-  background: #fff;
+  background: var(--bd-white);
   border-top: 1px solid var(--home-border);
   border-bottom: 1px solid var(--home-border);
 }
@@ -517,9 +537,9 @@
 }
 
 .home__tab--active {
-  background: #1a1b1e;
+  background: var(--bd-black);
   color: #fff;
-  border-color: #1a1b1e;
+  border-color: var(--bd-black);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
@@ -656,8 +676,8 @@
 }
 
 .home__brand-chip--active {
-  border-color: #1a1b1e;
-  background: #1a1b1e;
+  border-color: var(--bd-black);
+  background: var(--bd-black);
   color: #fff;
 }
 
@@ -754,6 +774,15 @@
   padding: 0.5rem 0;
   color: var(--home-text-muted);
   font-size: 0.9rem;
+}
+
+.home__carousel-loading,
+.home__grid-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.25rem 1rem;
+  min-height: 120px;
 }
 
 @media (max-width: 1024px) {

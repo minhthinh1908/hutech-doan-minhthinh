@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiGet, apiPost, apiUploadFile } from "../api/client.js";
 import BuyerSidebar from "../components/BuyerSidebar.jsx";
+import { CoreButton, CoreMessage, CoreSpinner, CoreTable } from "../components/ui/index.js";
 
 function formatDate(d) {
   if (!d) return "—";
@@ -93,6 +94,23 @@ export default function WarrantiesPage() {
     setFiles((prev) => prev.filter((_, j) => j !== i));
   }
 
+  const activateWarranty = useCallback(
+    async (orderItemId) => {
+      if (!orderItemId) return;
+      setActivating(orderItemId);
+      setErr("");
+      try {
+        await apiPost(`/warranties/activate/order-items/${orderItemId}`, {}, { auth: true });
+        await load();
+      } catch (e) {
+        setErr(e.message || "Không kích hoạt được bảo hành.");
+      } finally {
+        setActivating(null);
+      }
+    },
+    [load]
+  );
+
   async function submitRepair(e) {
     e.preventDefault();
     if (!modal) return;
@@ -120,6 +138,92 @@ export default function WarrantiesPage() {
     }
   }
 
+  const warrantyColumns = useMemo(
+    () => [
+      { key: "wid", header: "Mã BH", field: "warranty_id", body: (w) => `#${w.warranty_id}` },
+      {
+        key: "pn",
+        header: "Sản phẩm",
+        body: (w) => w.order_item?.product?.product_name || "—"
+      },
+      {
+        key: "sd",
+        header: "Bắt đầu",
+        field: "start_date",
+        body: (w) => (w.start_date ? formatDate(w.start_date) : "—")
+      },
+      {
+        key: "ed",
+        header: "Kết thúc",
+        field: "end_date",
+        body: (w) => (w.end_date ? formatDate(w.end_date) : "—")
+      },
+      { key: "st", header: "Trạng thái", field: "status", body: (w) => warrantyStatusVi(w.status) },
+      {
+        key: "ord",
+        header: "Đơn hàng",
+        body: (w) => {
+          const oid = w.order_item?.order?.order_id;
+          const ostatus = w.order_item?.order?.order_status;
+          return oid ? (
+            <span title={ostatus || ""}>
+              #{oid}
+              {ostatus ? ` · ${ostatus}` : ""}
+            </span>
+          ) : (
+            "—"
+          );
+        }
+      },
+      {
+        key: "nr",
+        header: "Số YC sửa",
+        body: (w) => (Array.isArray(w.repair_requests) ? w.repair_requests.length : 0)
+      },
+      {
+        key: "act",
+        header: "Thao tác",
+        body: (w) => {
+          const ok = canRequestRepair(w);
+          const canAct = canActivateWarranty(w);
+          const oiid = w.order_item_id;
+          return (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
+              {w.status === "pending" ? (
+                <CoreButton
+                  type="button"
+                  tone="primary"
+                  className="buyer-table__btn"
+                  disabled={!canAct || activating === oiid}
+                  title={
+                    canAct
+                      ? "Kích hoạt sau khi đã nhận hàng"
+                      : "Đợi đơn hoàn thành / đã giao (hoặc đã kích hoạt)"
+                  }
+                  onClick={() => canAct && activateWarranty(oiid)}
+                >
+                  {activating === oiid ? "Đang gửi…" : "Kích hoạt BH"}
+                </CoreButton>
+              ) : null}
+              <CoreButton
+                type="button"
+                tone="primary"
+                className="buyer-table__btn"
+                style={w.status === "pending" ? { opacity: 0.85 } : undefined}
+                disabled={!ok}
+                title={ok ? "Gửi yêu cầu sửa chữa" : "Cần kích hoạt BH và còn trong thời hạn"}
+                onClick={() => ok && setModal(w.warranty_id)}
+              >
+                Sửa chữa
+              </CoreButton>
+            </div>
+          );
+        }
+      }
+    ],
+    [activating, activateWarranty]
+  );
+
   return (
     <div className="buyer-page">
       <div className="buyer-page__hero">
@@ -135,12 +239,12 @@ export default function WarrantiesPage() {
       <div className="container buyer-shell">
         <BuyerSidebar />
         <div className="buyer-panel">
-          {loading ? <p>Đang tải…</p> : null}
-          {err ? (
-            <p className="buyer-msg buyer-msg--err" role="alert">
-              {err}
-            </p>
+          {loading ? (
+            <div className="buyer-page__loading">
+              <CoreSpinner style={{ width: "2.15rem", height: "2.15rem" }} strokeWidth="6" />
+            </div>
           ) : null}
+          {err ? <CoreMessage severity="error" text={err} /> : null}
           {!loading && items.length === 0 ? (
             <p className="buyer-muted">
               Chưa có phiếu bảo hành. Chỉ các sản phẩm có ghi số tháng bảo hành mới tạo phiếu sau khi bạn đặt hàng thành công.
@@ -148,80 +252,15 @@ export default function WarrantiesPage() {
           ) : null}
           {items.length > 0 ? (
             <div className="buyer-table-wrap">
-              <table className="buyer-table">
-                <thead>
-                  <tr>
-                    <th>Mã BH</th>
-                    <th>Sản phẩm</th>
-                    <th>Bắt đầu</th>
-                    <th>Kết thúc</th>
-                    <th>Trạng thái</th>
-                    <th>Đơn hàng</th>
-                    <th>Số YC sửa</th>
-                    <th>Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((w) => {
-                    const pname = w.order_item?.product?.product_name || "—";
-                    const nReq = Array.isArray(w.repair_requests) ? w.repair_requests.length : 0;
-                    const ok = canRequestRepair(w);
-                    const oid = w.order_item?.order?.order_id;
-                    const ostatus = w.order_item?.order?.order_status;
-                    const canAct = canActivateWarranty(w);
-                    const oiid = w.order_item_id;
-                    return (
-                      <tr key={w.warranty_id}>
-                        <td>#{w.warranty_id}</td>
-                        <td>{pname}</td>
-                        <td>{w.start_date ? formatDate(w.start_date) : "—"}</td>
-                        <td>{w.end_date ? formatDate(w.end_date) : "—"}</td>
-                        <td>{warrantyStatusVi(w.status)}</td>
-                        <td>
-                          {oid ? (
-                            <span title={ostatus || ""}>
-                              #{oid}
-                              {ostatus ? ` · ${ostatus}` : ""}
-                            </span>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td>{nReq}</td>
-                        <td>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
-                            {w.status === "pending" ? (
-                              <button
-                                type="button"
-                                className="buyer-btn buyer-btn--primary"
-                                disabled={!canAct || activating === oiid}
-                                title={
-                                  canAct
-                                    ? "Kích hoạt sau khi đã nhận hàng"
-                                    : "Đợi đơn hoàn thành / đã giao (hoặc đã kích hoạt)"
-                                }
-                                onClick={() => canAct && activateWarranty(oiid)}
-                              >
-                                {activating === oiid ? "Đang gửi…" : "Kích hoạt BH"}
-                              </button>
-                            ) : null}
-                            <button
-                              type="button"
-                              className="buyer-btn buyer-btn--primary"
-                              style={w.status === "pending" ? { opacity: 0.85 } : undefined}
-                              disabled={!ok}
-                              title={ok ? "Gửi yêu cầu sửa chữa" : "Cần kích hoạt BH và còn trong thời hạn"}
-                              onClick={() => ok && setModal(w.warranty_id)}
-                            >
-                              Sửa chữa
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <CoreTable
+                value={items}
+                dataKey="warranty_id"
+                columns={warrantyColumns}
+                paginator={items.length > 10}
+                rows={10}
+                emptyMessage="Không có phiếu bảo hành."
+                tableStyle={{ minWidth: "960px" }}
+              />
             </div>
           ) : null}
         </div>
@@ -258,18 +297,14 @@ export default function WarrantiesPage() {
                   </div>
                 ) : null}
               </div>
-              {submitErr ? (
-                <p className="buyer-msg buyer-msg--err" role="alert">
-                  {submitErr}
-                </p>
-              ) : null}
+              {submitErr ? <CoreMessage severity="error" text={submitErr} /> : null}
               <div className="buyer-actions">
-                <button type="submit" className="buyer-form__btn" disabled={submitting}>
+                <CoreButton type="submit" tone="secondary" className="buyer-form__btn" disabled={submitting}>
                   {submitting ? "Đang gửi…" : "Gửi yêu cầu"}
-                </button>
-                <button type="button" className="buyer-btn" onClick={() => setModal(null)}>
+                </CoreButton>
+                <CoreButton type="button" tone="ghost" onClick={() => setModal(null)}>
                   Hủy
-                </button>
+                </CoreButton>
               </div>
             </form>
           </div>

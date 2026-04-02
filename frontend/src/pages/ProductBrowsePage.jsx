@@ -4,6 +4,7 @@ import { apiGet } from "../api/client.js";
 import { mapApiProductToCard } from "../utils/mapProduct.js";
 import { DEMO_PRODUCTS } from "../data/demoProducts.js";
 import ProductCard from "../components/ProductCard.jsx";
+import { CoreBadge, CoreMessage, CoreSelect, CoreSpinner } from "../components/ui/index.js";
 
 export default function ProductBrowsePage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -83,26 +84,33 @@ export default function ProductBrowsePage() {
       </div>
 
       <div className="container browse-page__toolbar">
-        <label className="browse-page__sort">
-          <span>Sắp xếp:</span>
-          <select
+        <div className="browse-page__sort">
+          <CoreSelect
+            label="Sắp xếp"
             value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            aria-label="Sắp xếp"
-          >
-            <option value="">Mặc định</option>
-            <option value="price_asc">Giá tăng dần</option>
-            <option value="price_desc">Giá giảm dần</option>
-            <option value="name_asc">Tên A–Z</option>
-          </select>
-        </label>
-        {usedDemo ? <span className="browse-page__badge">Demo</span> : null}
+            onChange={(e) => setSort(e.value || "")}
+            options={[
+              { label: "Mặc định", value: "" },
+              { label: "Giá tăng dần", value: "price_asc" },
+              { label: "Giá giảm dần", value: "price_desc" },
+              { label: "Tên A–Z", value: "name_asc" }
+            ]}
+            filter={false}
+          />
+        </div>
+        {usedDemo ? <CoreBadge value="Demo" tone="warn" /> : null}
       </div>
 
-      {error ? <p className="browse-page__warn container">{error}</p> : null}
+      {error ? (
+        <div className="container browse-page__warn">
+          <CoreMessage severity="warn" text={error} />
+        </div>
+      ) : null}
 
       {loading ? (
-        <p className="browse-page__loading container">Đang tải…</p>
+        <div className="browse-page__loading container">
+          <CoreSpinner style={{ width: "2.25rem", height: "2.25rem" }} strokeWidth="6" />
+        </div>
       ) : (
         <ul className="browse-page__grid container">
           {items.map((p) => (

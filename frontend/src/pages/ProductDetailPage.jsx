@@ -6,6 +6,12 @@ import { mapApiProductToCard } from "../utils/mapProduct.js";
 import { findDemoProduct, DEMO_PRODUCTS } from "../data/demoProducts.js";
 import { addRecentlyViewed } from "../utils/recentlyViewed.js";
 import ProductCard from "../components/ProductCard.jsx";
+import { CoreButton, CoreMessage, CoreSpinner } from "../components/ui/index.js";
+
+function formatMoney(value) {
+  if (value == null || Number.isNaN(Number(value))) return "";
+  return `${Number(value).toLocaleString("vi-VN")}đ`;
+}
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -109,7 +115,9 @@ export default function ProductDetailPage() {
   if (loading) {
     return (
       <div className="detail-page container">
-        <p>Đang tải sản phẩm…</p>
+        <div className="detail-page__loading">
+          <CoreSpinner style={{ width: "2.2rem", height: "2.2rem" }} strokeWidth="6" />
+        </div>
       </div>
     );
   }
@@ -132,6 +140,19 @@ export default function ProductDetailPage() {
   const isCatalogActive = raw == null ? true : raw.status === "active";
   const canBuy = !product.contactOnly && (raw?.stock_quantity == null || raw.stock_quantity > 0);
   const myReview = user ? reviews.some((r) => String(r.user_id) === String(user.user_id)) : false;
+  const stockState =
+    raw?.stock_quantity == null
+      ? "Liên hệ để kiểm tra tồn kho"
+      : raw.stock_quantity > 0
+        ? "Còn hàng"
+        : "Tạm hết hàng";
+  const productHighlights = [
+    { label: "Thương hiệu", value: product.brand || "Đang cập nhật" },
+    { label: "Danh mục", value: raw?.category?.category_name || product.category || "Đang cập nhật" },
+    { label: "Mã sản phẩm", value: product.sku || "Đang cập nhật" },
+    { label: "Bảo hành", value: raw?.warranty_months ? `${raw.warranty_months} tháng` : "Theo chính sách hãng" },
+    { label: "Tình trạng", value: stockState }
+  ];
 
   async function addToCart() {
     setCartMsg("");
@@ -251,6 +272,14 @@ export default function ProductDetailPage() {
           )}
         </div>
         <div className="detail-page__info">
+          <div className="detail-page__meta-row">
+            {product.brand ? <span className="detail-page__pill">{product.brand}</span> : null}
+            {raw?.category?.category_name || product.category ? (
+              <span className="detail-page__pill detail-page__pill--soft">
+                {raw?.category?.category_name || product.category}
+              </span>
+            ) : null}
+          </div>
           <h1 className="detail-page__title">{product.name}</h1>
           {product.flashSale ? (
             <p className="detail-page__flash-tag" role="status">
@@ -265,17 +294,16 @@ export default function ProductDetailPage() {
               <span className="detail-page__price-contact">Liên hệ</span>
             ) : (
               <>
-                <span className="detail-page__price">
-                  {Number(product.price).toLocaleString("vi-VN")}đ
-                </span>
+                <span className="detail-page__price">{formatMoney(product.price)}</span>
                 {product.oldPrice ? (
-                  <span className="detail-page__old">
-                    {Number(product.oldPrice).toLocaleString("vi-VN")}đ
-                  </span>
+                  <span className="detail-page__old">{formatMoney(product.oldPrice)}</span>
                 ) : null}
               </>
             )}
           </div>
+          {product.discount ? (
+            <p className="detail-page__save">Tiết kiệm {product.discount}% so với giá niêm yết.</p>
+          ) : null}
           {raw?.stock_quantity != null ? (
             <p className="detail-page__stock">Tồn kho: {raw.stock_quantity}</p>
           ) : null}
@@ -296,15 +324,16 @@ export default function ProductDetailPage() {
               />
             </label>
           </div>
-          {cartErr ? <p className="detail-page__inline-err">{cartErr}</p> : null}
-          {cartMsg ? <p className="detail-page__inline-ok">{cartMsg}</p> : null}
+          {cartErr ? <CoreMessage severity="error" text={cartErr} className="detail-page__inline-msg" /> : null}
+          {cartMsg ? <CoreMessage severity="success" text={cartMsg} className="detail-page__inline-msg" /> : null}
           {!isCatalogActive && raw ? (
             <p className="detail-page__inline-err" role="status">
               Sản phẩm đã ngừng kinh doanh (admin đã tắt) — không thể thêm vào giỏ.
             </p>
           ) : null}
-          <button
+          <CoreButton
             type="button"
+            tone="secondary"
             className="detail-page__cta"
             disabled={!canBuy || !isCatalogActive}
             onClick={addToCart}
@@ -314,7 +343,42 @@ export default function ProductDetailPage() {
               : canBuy
                 ? "Thêm vào giỏ hàng"
                 : "Tạm hết hàng / liên hệ"}
-          </button>
+          </CoreButton>
+          <ul className="detail-page__trust-list">
+            <li>Tư vấn kỹ thuật đúng nhu cầu sử dụng thực tế.</li>
+            <li>Hỗ trợ hóa đơn VAT và giao hàng toàn quốc.</li>
+            <li>Bảo hành rõ ràng theo chính sách hãng và cửa hàng.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="container detail-page__highlights">
+        <h2 className="detail-page__h2">Thông tin nổi bật</h2>
+        <dl className="detail-page__highlight-grid">
+          {productHighlights.map((item) => (
+            <div className="detail-page__highlight-item" key={item.label}>
+              <dt>{item.label}</dt>
+              <dd>{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
+      <div className="container detail-page__support">
+        <div className="detail-page__support-card">
+          <h2 className="detail-page__h2">Mua hàng & hỗ trợ</h2>
+          <p className="detail-page__text">
+            Cần báo giá số lượng lớn hoặc tư vấn model phù hợp? Đội ngũ kỹ thuật sẵn sàng hỗ trợ nhanh qua hotline và
+            email.
+          </p>
+          <div className="detail-page__support-actions">
+            <a href="tel:1900633017" className="detail-page__support-link">
+              Hotline: 1900 633 017
+            </a>
+            <a href="mailto:sales@binhdinhtools.com" className="detail-page__support-link">
+              sales@binhdinhtools.com
+            </a>
+          </div>
         </div>
       </div>
 
@@ -383,13 +447,14 @@ export default function ProductDetailPage() {
                         }
                       />
                     </label>
-                    <button
+                    <CoreButton
                       type="submit"
+                      tone="primary"
                       className="detail-page__cta detail-page__cta--secondary detail-page__cta--small"
                       disabled={commentBusy[r.review_id]}
                     >
                       {commentBusy[r.review_id] ? "Đang gửi…" : "Gửi bình luận"}
-                    </button>
+                    </CoreButton>
                   </form>
                 ) : null}
               </li>
@@ -432,9 +497,9 @@ export default function ProductDetailPage() {
             </label>
             {reviewErr ? <p className="detail-page__inline-err">{reviewErr}</p> : null}
             {reviewMsg ? <p className="detail-page__inline-ok">{reviewMsg}</p> : null}
-            <button type="submit" className="detail-page__cta detail-page__cta--secondary" disabled={reviewSubmitting}>
+            <CoreButton type="submit" tone="primary" className="detail-page__cta detail-page__cta--secondary" disabled={reviewSubmitting}>
               {reviewSubmitting ? "Đang gửi…" : "Gửi đánh giá"}
-            </button>
+            </CoreButton>
           </form>
         ) : user && myReview ? (
           <p className="detail-page__text">Bạn đã gửi đánh giá cho sản phẩm này.</p>

@@ -11,8 +11,8 @@
 }
 
 .top-bar {
-  background: var(--bd-yellow);
-  color: var(--bd-black);
+  background: #111;
+  color: var(--bd-yellow);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -51,10 +51,7 @@
   text-transform: uppercase;
   white-space: nowrap;
   line-height: 1.35;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.35),
-    0 0 8px rgba(255, 200, 0, 0.45),
-    0 0 16px rgba(255, 140, 0, 0.2);
+  text-shadow: 0 0 10px rgba(255, 193, 7, 0.28);
   animation: top-bar-marquee-led 3s ease-in-out infinite;
 }
 
@@ -103,6 +100,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   font-size: 0.72rem;
+  color: #f7f7f7;
 }
 
 .top-bar__link:hover {
@@ -113,6 +111,7 @@
   text-decoration: underline;
   text-underline-offset: 3px;
   font-weight: 800;
+  color: var(--bd-yellow);
 }
 
 @media (max-width: 640px) {

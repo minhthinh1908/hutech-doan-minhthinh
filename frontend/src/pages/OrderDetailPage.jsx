@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { apiGet, apiPost } from "../api/client.js";
 import BuyerSidebar from "../components/BuyerSidebar.jsx";
+import { CoreButton, CoreMessage, CoreSelect, CoreSpinner, CoreTable } from "../components/ui/index.js";
 import { paymentStatusBuyerLabel } from "../utils/paymentStatusLabels.js";
 
 function money(n) {
@@ -270,25 +271,85 @@ export default function OrderDetailPage() {
     }
   }
 
-  async function activateWarrantyLine(orderItemId) {
-    if (!orderItemId) return;
-    setWarrantyActivating(orderItemId);
-    setErr("");
-    try {
-      await apiPost(`/warranties/activate/order-items/${orderItemId}`, {}, { auth: true });
-      const o = await apiGet(`/orders/${id}`);
-      setOrder(o);
-    } catch (e) {
-      setErr(e.message || "Không kích hoạt được bảo hành.");
-    } finally {
-      setWarrantyActivating(null);
-    }
-  }
+  const activateWarrantyLine = useCallback(
+    async (orderItemId) => {
+      if (!orderItemId) return;
+      setWarrantyActivating(orderItemId);
+      setErr("");
+      try {
+        await apiPost(`/warranties/activate/order-items/${orderItemId}`, {}, { auth: true });
+        const o = await apiGet(`/orders/${id}`);
+        setOrder(o);
+      } catch (e) {
+        setErr(e.message || "Không kích hoạt được bảo hành.");
+      } finally {
+        setWarrantyActivating(null);
+      }
+    },
+    [id]
+  );
+
+  const itemColumns = useMemo(() => {
+    if (!order) return [];
+    const os = order.order_status;
+    return [
+      { key: "n", header: "Sản phẩm", body: (line) => line.product?.product_name || "—" },
+      { key: "q", header: "SL", field: "quantity" },
+      { key: "u", header: "Đơn giá", body: (line) => `${money(line.unit_price)}đ` },
+      { key: "lt", header: "Thành tiền", body: (line) => `${money(line.line_total)}đ` },
+      {
+        key: "bh",
+        header: "Bảo hành",
+        style: { minWidth: 140, fontSize: "0.88rem" },
+        body: (line) => {
+          const months = Number(line.product?.warranty_months ?? 0);
+          const w = Array.isArray(line.warranties) ? line.warranties[0] : null;
+          const canAct =
+            months > 0 && w?.status === "pending" && orderAllowsWarrantyActivation(os);
+          if (months <= 0) return "—";
+          if (!w) return "—";
+          if (w.status === "pending") {
+            return (
+              <span>
+                <span className="buyer-muted">Chờ kích hoạt</span>
+                {canAct ? (
+                  <CoreButton
+                    type="button"
+                    tone="primary"
+                    className="buyer-table__btn"
+                    style={{ display: "block", marginTop: "0.35rem" }}
+                    disabled={warrantyActivating === line.order_item_id}
+                    onClick={() => activateWarrantyLine(line.order_item_id)}
+                  >
+                    {warrantyActivating === line.order_item_id ? "Đang gửi…" : "Kích hoạt BH"}
+                  </CoreButton>
+                ) : (
+                  <span className="buyer-muted" style={{ display: "block", marginTop: "0.25rem" }}>
+                    Đợi đơn hoàn thành / đã giao
+                  </span>
+                )}
+              </span>
+            );
+          }
+          return (
+            <span>
+              Đến {formatBhDate(w.end_date)}
+              {w.status === "active" ? (
+                <Link to="/bao-hanh" style={{ display: "block", marginTop: "0.25rem", fontSize: "0.82rem" }}>
+                  Xem phiếu BH
+                </Link>
+              ) : null}
+            </span>
+          );
+        }
+      }
+    ];
+  }, [order, warrantyActivating, activateWarrantyLine]);
 
   if (loading) {
     return (
-      <div className="buyer-page container">
-        <p>Đang tải đơn hàng…</p>
+      <div className="buyer-page container buyer-page__loading">
+        <CoreSpinner style={{ width: "2.15rem", height: "2.15rem" }} strokeWidth="6" />
       </div>
     );
   }
@@ -296,8 +357,10 @@ export default function OrderDetailPage() {
   if (err || !order) {
     return (
       <div className="buyer-page container">
-        <p className="buyer-msg buyer-msg--err">{err || "Không có dữ liệu."}</p>
-        <Link to="/don-hang">← Danh sách đơn</Link>
+        <CoreMessage severity="error" text={err || "Không có dữ liệu."} />
+        <p style={{ marginTop: "1rem" }}>
+          <Link to="/don-hang">← Danh sách đơn</Link>
+        </p>
       </div>
     );
   }
@@ -335,24 +398,16 @@ export default function OrderDetailPage() {
           </p>
 
           {paymentBanner === "success" ? (
-            <p className="buyer-msg buyer-msg--ok" role="status">
-              Thanh toán thành công — đơn hàng đã được cập nhật.
-            </p>
+            <CoreMessage severity="success" text="Thanh toán thành công — đơn hàng đã được cập nhật." />
           ) : null}
           {paymentBanner === "failed" ? (
-            <p className="buyer-msg buyer-msg--err" role="alert">
-              Thanh toán thất bại — bạn có thể thử lại hoặc đổi phương thức.
-            </p>
+            <CoreMessage severity="error" text="Thanh toán thất bại — bạn có thể thử lại hoặc đổi phương thức." />
           ) : null}
           {paymentBanner === "cancelled" ? (
-            <p className="buyer-msg buyer-msg--neutral" role="status">
-              Giao dịch bị hủy — đơn vẫn chờ thanh toán nếu bạn muốn thử lại.
-            </p>
+            <CoreMessage severity="warn" text="Giao dịch bị hủy — đơn vẫn chờ thanh toán nếu bạn muốn thử lại." />
           ) : null}
           {paymentBanner === "pending" ? (
-            <p className="buyer-msg buyer-msg--neutral" role="status">
-              Giao dịch đang chờ xác nhận từ cổng / ngân hàng.
-            </p>
+            <CoreMessage severity="info" text="Giao dịch đang chờ xác nhận từ cổng / ngân hàng." />
           ) : null}
 
           <section className="buyer-order-track" aria-labelledby="order-track-heading">
@@ -391,70 +446,14 @@ export default function OrderDetailPage() {
             <strong>Đã giao (shipped)</strong>, bấm <strong>Kích hoạt BH</strong> để bắt đầu tính thời hạn.
           </p>
           <div className="buyer-table-wrap">
-            <table className="buyer-table">
-              <thead>
-                <tr>
-                  <th>Sản phẩm</th>
-                  <th>SL</th>
-                  <th>Đơn giá</th>
-                  <th>Thành tiền</th>
-                  <th>Bảo hành</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((line) => {
-                  const months = Number(line.product?.warranty_months ?? 0);
-                  const w = Array.isArray(line.warranties) ? line.warranties[0] : null;
-                  const canAct =
-                    months > 0 &&
-                    w?.status === "pending" &&
-                    orderAllowsWarrantyActivation(order.order_status);
-                  return (
-                    <tr key={line.order_item_id}>
-                      <td>{line.product?.product_name || "—"}</td>
-                      <td>{line.quantity}</td>
-                      <td>{money(line.unit_price)}đ</td>
-                      <td>{money(line.line_total)}đ</td>
-                      <td style={{ minWidth: 140, fontSize: "0.88rem" }}>
-                        {months <= 0 ? (
-                          "—"
-                        ) : !w ? (
-                          "—"
-                        ) : w.status === "pending" ? (
-                          <span>
-                            <span className="buyer-muted">Chờ kích hoạt</span>
-                            {canAct ? (
-                              <button
-                                type="button"
-                                className="buyer-btn buyer-btn--primary"
-                                style={{ display: "block", marginTop: "0.35rem", fontSize: "0.82rem" }}
-                                disabled={warrantyActivating === line.order_item_id}
-                                onClick={() => activateWarrantyLine(line.order_item_id)}
-                              >
-                                {warrantyActivating === line.order_item_id ? "Đang gửi…" : "Kích hoạt BH"}
-                              </button>
-                            ) : (
-                              <span className="buyer-muted" style={{ display: "block", marginTop: "0.25rem" }}>
-                                Đợi đơn hoàn thành / đã giao
-                              </span>
-                            )}
-                          </span>
-                        ) : (
-                          <span>
-                            Đến {formatBhDate(w.end_date)}
-                            {w.status === "active" ? (
-                              <Link to="/bao-hanh" style={{ display: "block", marginTop: "0.25rem", fontSize: "0.82rem" }}>
-                                Xem phiếu BH
-                              </Link>
-                            ) : null}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <CoreTable
+              value={items}
+              dataKey="order_item_id"
+              columns={itemColumns}
+              paginator={false}
+              emptyMessage="Không có dòng sản phẩm."
+              tableStyle={{ minWidth: "640px" }}
+            />
           </div>
 
           <section style={{ marginTop: "1.5rem" }} aria-labelledby="pay-h">
@@ -489,7 +488,7 @@ export default function OrderDetailPage() {
                 {pendingGatewayPayment?.gateway_checkout_token ? (
                   <span style={{ display: "block", marginTop: "0.65rem" }}>
                     <Link
-                      className="buyer-btn buyer-btn--primary"
+                      className="buyer-link-btn"
                       to={`/thanh-toan?token=${encodeURIComponent(pendingGatewayPayment.gateway_checkout_token)}&orderId=${encodeURIComponent(String(order.order_id))}`}
                     >
                       Mở trang cổng thanh toán (demo)
@@ -497,38 +496,36 @@ export default function OrderDetailPage() {
                   </span>
                 ) : null}
                 <div style={{ marginTop: "0.65rem", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                  <button
+                  <CoreButton
                     type="button"
-                    className="buyer-form__btn"
+                    tone="secondary"
                     disabled={!!gatewaySim || !!outcomeSim}
                     onClick={() => simulateGatewayResult(pendingGatewayPayment.payment_id, "success")}
                   >
                     {gatewaySim === `${pendingGatewayPayment.payment_id}:success`
                       ? "Đang xử lý…"
                       : "Thanh toán thành công"}
-                  </button>
-                  <button
+                  </CoreButton>
+                  <CoreButton
                     type="button"
-                    className="buyer-form__btn"
-                    style={{ border: "1px solid #ccc", background: "#fff", color: "#333" }}
+                    tone="ghost"
                     disabled={!!gatewaySim || !!outcomeSim}
                     onClick={() => simulateGatewayResult(pendingGatewayPayment.payment_id, "failed")}
                   >
                     {gatewaySim === `${pendingGatewayPayment.payment_id}:failed`
                       ? "Đang xử lý…"
                       : "Thanh toán thất bại"}
-                  </button>
-                  <button
+                  </CoreButton>
+                  <CoreButton
                     type="button"
-                    className="buyer-form__btn"
-                    style={{ border: "1px solid #b91c1c", background: "#fff", color: "#b91c1c" }}
+                    tone="danger"
                     disabled={!!gatewaySim}
                     onClick={() => simulateGatewayResult(pendingGatewayPayment.payment_id, "cancelled")}
                   >
                     {gatewaySim === `${pendingGatewayPayment.payment_id}:cancelled`
                       ? "Đang xử lý…"
                       : "Hủy thanh toán"}
-                  </button>
+                  </CoreButton>
                 </div>
               </div>
             ) : null}
@@ -548,49 +545,36 @@ export default function OrderDetailPage() {
                 callback thất bại, hoặc giao dịch trùng — thông báo dưới đây là nội dung hiển thị cho khách.
                 <div style={{ marginTop: "0.65rem", display: "flex", flexWrap: "wrap", gap: "0.45rem" }}>
                   {PAYMENT_EXCEPTION_SCENARIOS.map(({ scenario, label }) => (
-                    <button
+                    <CoreButton
                       key={scenario}
                       type="button"
-                      className="buyer-form__btn buyer-form__btn--sm"
-                      style={{ fontSize: "0.8rem", padding: "0.35rem 0.55rem" }}
+                      tone="ghost"
+                      className="buyer-table__btn"
                       disabled={!!outcomeSim || !!gatewaySim}
                       onClick={() => simulatePaymentException(gatewayPaymentForExceptionDemo.payment_id, scenario)}
                     >
                       {outcomeSim === `${gatewayPaymentForExceptionDemo.payment_id}:${scenario}`
                         ? "Đang xử lý…"
                         : label}
-                    </button>
+                    </CoreButton>
                   ))}
                 </div>
               </div>
             ) : null}
-            <div className="buyer-form__field" style={{ maxWidth: 400 }}>
-              <span className="buyer-form__label">Phương thức</span>
-              <select
-                className="buyer-form__input"
+            <div className="buyer-form__field buyer-cart__select" style={{ maxWidth: 400 }}>
+              <CoreSelect
+                label="Phương thức"
                 value={payMethod}
-                onChange={(e) => setPayMethod(e.target.value)}
-              >
-                {PAY_METHODS.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(e) => setPayMethod(e.value)}
+                filter={false}
+                options={PAY_METHODS.map((m) => ({ label: m.label, value: m.value }))}
+              />
             </div>
-            {payErr ? (
-              <p className="buyer-msg buyer-msg--err" role="alert">
-                {payErr}
-              </p>
-            ) : null}
-            {payMsg ? (
-              <p className="buyer-msg buyer-msg--ok" role="status">
-                {payMsg}
-              </p>
-            ) : null}
-            <button type="button" className="buyer-form__btn" style={{ marginTop: "0.5rem" }} disabled={paying} onClick={submitPayment}>
+            {payErr ? <CoreMessage severity="error" text={payErr} /> : null}
+            {payMsg ? <CoreMessage severity="success" text={payMsg} /> : null}
+            <CoreButton type="button" tone="secondary" className="buyer-form__btn" style={{ marginTop: "0.5rem" }} disabled={paying} onClick={submitPayment}>
               {paying ? "Đang gửi…" : "Xác nhận thanh toán"}
-            </button>
+            </CoreButton>
           </section>
 
           <section style={{ marginTop: "1.75rem" }} aria-labelledby="ref-h">
@@ -646,19 +630,11 @@ export default function OrderDetailPage() {
                   onChange={(e) => setRefundBuyerNote(e.target.value)}
                 />
               </label>
-              {refundErr ? (
-                <p className="buyer-msg buyer-msg--err" role="alert">
-                  {refundErr}
-                </p>
-              ) : null}
-              {refundMsg ? (
-                <p className="buyer-msg buyer-msg--ok" role="status">
-                  {refundMsg}
-                </p>
-              ) : null}
-              <button type="submit" className="buyer-form__btn" disabled={refunding}>
+              {refundErr ? <CoreMessage severity="error" text={refundErr} /> : null}
+              {refundMsg ? <CoreMessage severity="success" text={refundMsg} /> : null}
+              <CoreButton type="submit" tone="secondary" className="buyer-form__btn" disabled={refunding}>
                 {refunding ? "Đang gửi…" : "Gửi yêu cầu"}
-              </button>
+              </CoreButton>
             </form>
           </section>
         </div>

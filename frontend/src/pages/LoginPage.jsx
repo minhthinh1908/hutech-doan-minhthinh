@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { CoreButton, CoreMessage } from "../components/ui/index.js";
 
 function redirectTarget(fromState) {
   if (fromState && typeof fromState === "object" && fromState.pathname) {
@@ -55,11 +56,9 @@ export default function LoginPage() {
       <div className="auth-page__box">
         <form className="auth-form" onSubmit={handleSubmit}>
           {guestMessage ? (
-            <p className="auth-form__info" role="status">
-              {guestMessage}
-            </p>
+            <CoreMessage severity="info" text={guestMessage} className="auth-form__msg" />
           ) : null}
-          {error ? <p className="auth-form__error">{error}</p> : null}
+          {error ? <CoreMessage severity="error" text={error} className="auth-form__msg" /> : null}
           <label className="auth-form__field">
             <span className="auth-form__label">Email</span>
             <input
@@ -82,9 +81,9 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </label>
-          <button type="submit" className="auth-form__btn" disabled={submitting}>
+          <CoreButton type="submit" tone="secondary" className="auth-form__btn" disabled={submitting}>
             {submitting ? "Đang xử lý…" : "Đăng nhập"}
-          </button>
+          </CoreButton>
           <p className="auth-form__hint">
             Chưa có tài khoản?{" "}
             <Link to="/dang-ky" state={registerState}>
