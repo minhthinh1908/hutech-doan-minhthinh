@@ -26,6 +26,7 @@ const { ensureDefaultBrands } = require("../services/ensureDefaultBrands");
 const { ensureDefaultCategories } = require("../services/ensureDefaultCategories");
 const { ensureDefaultCategoryBrands } = require("../services/ensureDefaultCategoryBrands");
 const { seedDemoRefundRequests } = require("../services/seedDemoRefundRequests");
+const { seedRealProductsPerBrand } = require("../services/seedRealProductsPerBrand");
 
 const prisma = new PrismaClient();
 
@@ -692,6 +693,8 @@ async function main() {
     console.log(`[seed] brands: +${brSeed.created} thương hiệu mặc định (Milwaukee, DEWALT, …).`);
   }
   await seedDefaultCategories();
+
+  await seedRealProductsPerBrand(prisma);
 
   const email = (process.env.ADMIN_EMAIL || "admin@ecommercetools.local").trim().toLowerCase();
   const password = process.env.ADMIN_PASSWORD || "Admin@123456";

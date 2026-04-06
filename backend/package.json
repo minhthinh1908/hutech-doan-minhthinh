@@ -9,6 +9,7 @@
         "prisma:migrate": "prisma migrate dev",
         "prisma:seed": "node prisma/seed.js",
         "seed:demo-refunds": "node scripts/seed-demo-refunds.js",
+        "seed:brand-products": "node scripts/seed-brand-products.js",
         "ensure:cms-pages": "node scripts/ensure-cms-pages.js"
     },
     "prisma": {
