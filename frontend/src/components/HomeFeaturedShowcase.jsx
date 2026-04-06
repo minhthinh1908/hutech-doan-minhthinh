@@ -108,6 +108,7 @@ export default function HomeFeaturedShowcase({ products = [] }) {
                     alt=""
                     className="home__banner-img home__banner-img--hero"
                     loading="lazy"
+                    referrerPolicy="no-referrer"
                   />
                 ) : (
                   <div className="home-featured-hero__img-ph" aria-hidden />
@@ -181,7 +182,13 @@ export default function HomeFeaturedShowcase({ products = [] }) {
                   className={`home-featured-side__inner ${sideMotionClass} home-featured-side__inner--delay-1`}
                 >
                   {side1.image ? (
-                    <img src={side1.image} alt="" className="home__banner-img" loading="lazy" />
+                    <img
+                      src={side1.image}
+                      alt=""
+                      className="home__banner-img"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
                   ) : (
                     <div className="home-featured-hero__img-ph home-featured-hero__img-ph--side" aria-hidden />
                   )}
@@ -210,7 +217,13 @@ export default function HomeFeaturedShowcase({ products = [] }) {
                   className={`home-featured-side__inner ${sideMotionClass} home-featured-side__inner--delay-2`}
                 >
                   {side2.image ? (
-                    <img src={side2.image} alt="" className="home__banner-img" loading="lazy" />
+                    <img
+                      src={side2.image}
+                      alt=""
+                      className="home__banner-img"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
                   ) : (
                     <div className="home-featured-hero__img-ph home-featured-hero__img-ph--side" aria-hidden />
                   )}

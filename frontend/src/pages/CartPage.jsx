@@ -175,7 +175,12 @@ export default function CartPage() {
                 className={`buyer-cart-row${inactive ? " buyer-cart-row--inactive" : ""}`}
               >
                 {img ? (
-                  <img className="buyer-cart-thumb" src={img} alt="" />
+                  <img
+                    className="buyer-cart-thumb"
+                    src={img}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                  />
                 ) : (
                   <div className="buyer-cart-thumb" />
                 )}

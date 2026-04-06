@@ -266,7 +266,12 @@ export default function ProductDetailPage() {
       <div className="container detail-page__grid">
         <div className="detail-page__media">
           {product.image ? (
-            <img src={product.image} alt="" className="detail-page__img" />
+            <img
+              src={product.image}
+              alt=""
+              className="detail-page__img"
+              referrerPolicy="no-referrer"
+            />
           ) : (
             <div className="detail-page__placeholder" />
           )}

@@ -2,13 +2,17 @@
  * Banner trang chủ: mỗi hãng có nhiều "slide", mỗi slide = 1 ảnh lớn + 2 ảnh phụ (cùng hãng).
  * Luồng tự động: lần lượt các slide trong hãng A → chuyển sang hãng B → …
  *
- * Ảnh DeWalt: import qua Vite (đường dẫn /public/... dễ 404 nếu thiếu file sau khi clone).
+ * Slide DeWalt đầu: DCD778D2-B1 (ảnh Dewalt Vietnam). Các slide khác: import Vite.
  */
-/** Ảnh lớn cố định: DCD710D2 10.8V (kèm 2 pin + sạc) */
+/** Ảnh slide phụ / slide 2: DCD710D2 10.8V (kèm 2 pin + sạc) */
 import dewaltMain from "../assets/brand-showcase/dewalt-main.png";
 import dewaltSide806 from "../assets/brand-showcase/dewalt-side-806.png";
 import dewaltSideTop from "../assets/brand-showcase/dewalt-side-top.png";
 import dewaltSideBottom from "../assets/brand-showcase/dewalt-side-bottom.png";
+
+/** Ảnh chính slide DeWalt 1 — DCD778D2-B1 (nguồn Dewalt Vietnam) */
+const DEWALT_DCD778_IMG =
+  "https://imgs.dewaltvietnam.com/wp-content/uploads/2025/04/may-khoan-van-vit-dung-pin-dewalt-dcd778d2-b1-2-pin-18v-2ah-sac-dcd778d2-b1-300x300.jpg";
 
 export const BRAND_SHOWCASES = [
   {
@@ -18,12 +22,13 @@ export const BRAND_SHOWCASES = [
       {
         id: "d1",
         main: {
-          image: dewaltMain,
+          image: DEWALT_DCD778_IMG,
           brand: "DEWALT",
-          kicker: "10.8V XR · Kèm 02 pin + sạc",
-          title: "Máy khoan cầm tay Dewalt DCD710D2 10.8V (kèm 2 pin)",
-          price: "2.330.000đ",
-          badges: ["10.8V", "XR", "BRUSHLESS"]
+          kicker: "18V · 02 pin 2Ah + sạc",
+          title:
+            "Máy khoan vặn vít dùng pin Dewalt DCD778D2-B1 (2 Pin 18V 2Ah + Sạc)",
+          price: "3.490.000đ",
+          badges: ["18V", "2 PIN", "KÈM SẠC"]
         },
         side1: {
           image: dewaltSideTop,

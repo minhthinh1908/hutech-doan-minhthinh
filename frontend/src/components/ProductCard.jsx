@@ -70,7 +70,13 @@ export default function ProductCard({ product, compact = false }) {
 
       <div className="product-card__img-wrap">
         {image ? (
-          <img src={image} alt="" className="product-card__img" loading="lazy" />
+          <img
+            src={image}
+            alt=""
+            className="product-card__img"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
         ) : (
           <div className="product-card__placeholder" aria-hidden />
         )}

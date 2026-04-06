@@ -414,6 +414,7 @@ export default function HomePage() {
                     alt=""
                     className="home__banner-img home__banner-img--hero"
                     loading="lazy"
+                    referrerPolicy="no-referrer"
                   />
                   <div className="home__banner-deWalt" aria-hidden>
                     {main.brand}
@@ -466,7 +467,12 @@ export default function HomePage() {
           <div className="home__banners-side">
             {side1 ? (
               <div key={`${currentHero.key}-s1`} className="home__banner-card home__banner-card--small home__banner-card--enter">
-                <img src={side1.image} alt="" className="home__banner-img" />
+                <img
+                  src={side1.image}
+                  alt=""
+                  className="home__banner-img"
+                  referrerPolicy="no-referrer"
+                />
                 <div className="home__banner-overlay home__banner-overlay--compact">
                   <span className="home__banner-kicker">{side1.kicker}</span>
                   <span className="home__banner-title home__banner-title--sm">{side1.title}</span>
@@ -478,7 +484,12 @@ export default function HomePage() {
             ) : null}
             {side2 ? (
               <div key={`${currentHero.key}-s2`} className="home__banner-card home__banner-card--small home__banner-card--enter">
-                <img src={side2.image} alt="" className="home__banner-img" />
+                <img
+                  src={side2.image}
+                  alt=""
+                  className="home__banner-img"
+                  referrerPolicy="no-referrer"
+                />
                 <div className="home__banner-overlay home__banner-overlay--compact">
                   {side2.price ? (
                     <>
